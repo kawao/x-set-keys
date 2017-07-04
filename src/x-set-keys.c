@@ -17,21 +17,18 @@
  *
  ***************************************************************************/
 
-#ifndef _COMMON_H
-#define _COMMON_H
+#include "x-set-keys.h"
 
-#include <glib.h>
+gboolean xsk_initialize(XSetKeys *xsk)
+{
+  return TRUE;
+}
 
-#ifndef MAIN
-extern const
-#endif
-gboolean is_debug;
+gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
+{
+  return TRUE;
+}
 
-#define debug_print(format, ...) if (is_debug) \
-    g_debug("%s:%d (%s) " format, __FILE__, __LINE__, G_STRFUNC, ##__VA_ARGS__)
-
-#define array_num(array) (sizeof(array)/sizeof(*array))
-
-void handle_fatal_error(const gchar *message);
-
-#endif /* _COMMON_H */
+void xsk_finalize(XSetKeys *xsk)
+{
+}

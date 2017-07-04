@@ -25,9 +25,10 @@
 
 #define MAIN
 #include "common.h"
+#include "x-set-keys.h"
 
 typedef struct _Option {
-  char *device_file;
+  gchar *device_filepath;
 } Option;
 
 static volatile gboolean _caught_sigint = FALSE;
@@ -37,8 +38,8 @@ static volatile gboolean _error_occurred = FALSE;
 
 static void _set_debug_flag();
 static gboolean _handle_signal(gpointer flag_pointer);
-static int _handle_x_error(Display *display, XErrorEvent *event);
-static int _handle_xio_error(Display *display);
+static gint _handle_x_error(Display *display, XErrorEvent *event);
+static gint _handle_xio_error(Display *display);
 static gboolean _run(const Option *option);
 
 gint main(gint argc, const gchar *argv[])
@@ -77,9 +78,9 @@ gboolean _handle_signal(gpointer flag_pointer)
   return G_SOURCE_CONTINUE;
 }
 
-static int _handle_x_error(Display *display, XErrorEvent *event)
+static gint _handle_x_error(Display *display, XErrorEvent *event)
 {
-  char message[256];
+  gchar message[256];
 
   XGetErrorText(display, event->error_code, message, sizeof(message));
   g_critical("X protocol error: %s on protocol request %d",
@@ -90,7 +91,7 @@ static int _handle_x_error(Display *display, XErrorEvent *event)
   return 0;
 }
 
-static int _handle_xio_error(Display *display)
+static gint _handle_xio_error(Display *display)
 {
   g_critical("Connection lost to X server `%s'", DisplayString(display));
   _error_occurred = TRUE;
@@ -98,7 +99,7 @@ static int _handle_xio_error(Display *display)
   return 0;
 }
 
-void handle_fatal_error(const char *message)
+void handle_fatal_error(const gchar *message)
 {
   if (message) {
     if (errno) {
@@ -114,10 +115,20 @@ void handle_fatal_error(const char *message)
 static gboolean _run(const Option *option)
 {
   gboolean result = TRUE;
+  XSetKeys xsk = { 0 };
 
   _error_occurred = FALSE;
 
-  /* initialize */
+  if (!xsk_initialize(&xsk)) {
+    _error_occurred = TRUE;
+    return FALSE;
+  }
+
+  /* load config */
+
+  if (!xsk_start(&xsk, option->device_filepath)) {
+    _error_occurred = TRUE;
+  }
 
   if (_error_occurred) {
     result = FALSE;
@@ -145,7 +156,6 @@ static gboolean _run(const Option *option)
   }
   g_message(result ? "Initiating restart" : "Initiating shutdown");
 
-  /* FINALIZE: */
-
+  xsk_finalize(&xsk);
   return result;
 }
