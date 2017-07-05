@@ -25,11 +25,18 @@
 
 typedef struct _XSetKeys {
   Display *display;
+  gpointer kd_source;
+  gpointer ui_source;
   guchar key_state[256];
 } XSetKeys;
 
 gboolean xsk_initialize(XSetKeys *xsk);
 gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath);
 void xsk_finalize(XSetKeys *xsk);
+
+#define xsk_set_kd_source(xsk, source) ((xsk)->kd_source = (source))
+#define xsk_get_kd_source(xsk) ((xsk)->kd_source)
+#define xsk_set_ui_source(xsk, source) ((xsk)->ui_source = (source))
+#define xsk_get_ui_source(xsk) ((xsk)->ui_source)
 
 #endif /* _X_SET_KEYS_H */

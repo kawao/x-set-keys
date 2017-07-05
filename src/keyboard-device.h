@@ -17,25 +17,12 @@
  *
  ***************************************************************************/
 
+#ifndef _KEYBOARD_DEVICE_H
+#define _KEYBOARD_DEVICE_H
+
 #include "x-set-keys.h"
-#include "keyboard-device.h"
 
-gboolean xsk_initialize(XSetKeys *xsk)
-{
-  return TRUE;
-}
+gboolean kd_initialize(XSetKeys *xsk, const gchar *device_filepath);
+void kd_finalize(XSetKeys *xsk);
 
-gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
-{
-  if (!kd_initialize(xsk, device_filepath)) {
-    return FALSE;
-  }
-  return TRUE;
-}
-
-void xsk_finalize(XSetKeys *xsk)
-{
-  if (xsk->kd_source) {
-    kd_finalize(xsk);
-  }
-}
+#endif  /* _KEYBOARD_DEVICE_H */
