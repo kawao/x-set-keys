@@ -27,9 +27,9 @@
 #include "common.h"
 #include "x-set-keys.h"
 
-typedef struct _Option {
+typedef struct __Option {
   gchar *device_filepath;
-} Option;
+} _Option;
 
 static volatile gboolean _caught_sigint = FALSE;
 static volatile gboolean _caught_sigterm = FALSE;
@@ -40,11 +40,11 @@ static void _set_debug_flag();
 static gboolean _handle_signal(gpointer flag_pointer);
 static gint _handle_x_error(Display *display, XErrorEvent *event);
 static gint _handle_xio_error(Display *display);
-static gboolean _run(const Option *option);
+static gboolean _run(const _Option *option);
 
 gint main(gint argc, const gchar *argv[])
 {
-  Option option = { 0 };
+  _Option option = { 0 };
 
   g_set_prgname(g_path_get_basename(argv[0]));
   _set_debug_flag();
@@ -83,7 +83,7 @@ static gint _handle_x_error(Display *display, XErrorEvent *event)
   gchar message[256];
 
   XGetErrorText(display, event->error_code, message, sizeof(message));
-  g_critical("X protocol error: %s on protocol request %d",
+  g_critical("X protocol error : %s on protocol request %d",
              message,
              event->request_code);
   _error_occurred = TRUE;
@@ -103,7 +103,7 @@ void handle_fatal_error(const gchar *message)
 {
   if (message) {
     if (errno) {
-      g_critical("%s:%s", message, strerror(errno));
+      g_critical("%s : %s", message, strerror(errno));
     } else {
       g_critical(message);
     }
@@ -112,7 +112,7 @@ void handle_fatal_error(const gchar *message)
   g_main_context_wakeup(NULL);
 }
 
-static gboolean _run(const Option *option)
+static gboolean _run(const _Option *option)
 {
   gboolean result = TRUE;
   XSetKeys xsk = { 0 };
