@@ -30,11 +30,11 @@
 #include "common.h"
 #include "keyboard-device.h"
 
-typedef struct __KDSource {
+typedef struct __KeyboardDevice {
   GSource source;
   GPollFD poll_fd;
   XSetKeys *xsk;
-} _KDSource;
+} _KeyboardDevice;
 
 #define _test_bit(bit, array) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
 
@@ -58,36 +58,35 @@ gboolean kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
 
   gint fd;
   GSource *source;
-  _KDSource *kd_source;
+  _KeyboardDevice *kd;
 
   fd = _open_device_file(device_filepath);
   if (fd < 0) {
     return FALSE;
   }
-  source = g_source_new(&event_funcs, sizeof(_KDSource));
-  kd_source = (_KDSource *)source;
+  source = g_source_new(&event_funcs, sizeof(_KeyboardDevice));
+  kd = (_KeyboardDevice *)source;
 
-  kd_source->xsk = xsk;
-  kd_source->poll_fd.fd = fd;
-  kd_source->poll_fd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
-  g_source_add_poll(source, &kd_source->poll_fd);
+  kd->xsk = xsk;
+  kd->poll_fd.fd = fd;
+  kd->poll_fd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
+  g_source_add_poll(source, &kd->poll_fd);
   g_source_attach(source, NULL);
 
-  xsk_set_kd_source(xsk, kd_source);
+  xsk_set_keyboard_device(xsk, kd);
 
   return TRUE;
 }
 
 void kd_finalize(XSetKeys *xsk)
 {
-  _KDSource *kd_source = xsk_get_kd_source(xsk);
-  g_return_if_fail(kd_source);
+  _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
 
-  if (close(kd_source->poll_fd.fd) < 0) {
-    g_critical("Failed to close keyboard device %s", strerror(errno));
+  if (close(kd->poll_fd.fd) < 0) {
+    g_critical("Failed to close keyboard device : %s", strerror(errno));
   }
-  g_source_destroy((GSource *)kd_source);
-  g_source_unref((GSource *)kd_source);
+  g_source_destroy((GSource *)kd);
+  g_source_unref((GSource *)kd);
 }
 
 static gint _open_device_file(const gchar *device_filepath)
@@ -97,14 +96,14 @@ static gint _open_device_file(const gchar *device_filepath)
   if (device_filepath) {
     fd = open(device_filepath, O_RDWR);
     if (fd < 0) {
-      g_critical("Failed to open %s:%s", device_filepath, strerror(errno));
+      g_critical("Failed to open %s : %s", device_filepath, strerror(errno));
       return -1;
     }
   } else {
     fd = _find_keyboard();
     if (fd < 0) {
       g_critical("Can not find keyboard device."
-                 "Maybe you need root Privilege to run %s.",
+                 "Maybe you need root privilege to run %s.",
                  g_get_prgname());
       return -1;
     }
@@ -142,7 +141,7 @@ static gboolean _is_keyboard(gint fd)
 {
   gint index;
   uint8_t ev_bits[EV_MAX/8 + 1] = { 0 };
-  uint8_t key_bits[(KEY_MAX+7)/8] = { 0 };
+  uint8_t key_bits[KEY_MAX/8 + 1] = { 0 };
 
   if (ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), ev_bits) < 0) {
     return FALSE;
@@ -177,22 +176,22 @@ static gboolean _prepare(GSource *source, gint *timeout)
 
 static gboolean _check(GSource *source)
 {
-  _KDSource *kd_source = (_KDSource *)source;
+  _KeyboardDevice *kd = (_KeyboardDevice *)source;
 
-  return (kd_source->poll_fd.revents & (G_IO_IN | G_IO_HUP | G_IO_ERR)) != 0;
+  return (kd->poll_fd.revents & (G_IO_IN | G_IO_HUP | G_IO_ERR)) != 0;
 }
 
 static gboolean _dispatch(GSource *source,
                           GSourceFunc callback,
                           gpointer user_data)
 {
-  _KDSource *kd_source = (_KDSource *)source;
+  _KeyboardDevice *kd = (_KeyboardDevice *)source;
 
-  if (kd_source->poll_fd.revents & G_IO_HUP) {
+  if (kd->poll_fd.revents & G_IO_HUP) {
     handle_fatal_error("Hang up Keyboard device");
-  } else if (kd_source->poll_fd.revents & G_IO_ERR) {
+  } else if (kd->poll_fd.revents & G_IO_ERR) {
     handle_fatal_error("Error on Keyboard device");
-  } else if (kd_source->poll_fd.revents & G_IO_IN) {
+  } else if (kd->poll_fd.revents & G_IO_IN) {
 
   }
   return G_SOURCE_CONTINUE;

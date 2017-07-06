@@ -35,7 +35,7 @@ gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
 
 void xsk_finalize(XSetKeys *xsk)
 {
-  if (xsk->kd_source) {
+  if (xsk_get_keyboard_device(xsk)) {
     kd_finalize(xsk);
   }
 }
