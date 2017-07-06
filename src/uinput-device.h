@@ -17,32 +17,12 @@
  *
  ***************************************************************************/
 
+#ifndef _UINPUT_DEVICE_H
+#define _UINPUT_DEVICE_H
+
 #include "x-set-keys.h"
-#include "keyboard-device.h"
-#include "uinput-device.h"
 
-gboolean xsk_initialize(XSetKeys *xsk)
-{
-  return TRUE;
-}
+gboolean ud_initialize(XSetKeys *xsk);
+void ud_finalize(XSetKeys *xsk);
 
-gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
-{
-  if (!kd_initialize(xsk, device_filepath)) {
-    return FALSE;
-  }
-  if (!ud_initialize(xsk)) {
-    return FALSE;
-  }
-  return TRUE;
-}
-
-void xsk_finalize(XSetKeys *xsk)
-{
-  if (xsk_get_keyboard_device(xsk)) {
-    kd_finalize(xsk);
-  }
-  if (xsk_get_uinput_device(xsk)) {
-    ud_finalize(xsk);
-  }
-}
+#endif  /* _UINPUT_DEVICE_H */

@@ -121,12 +121,9 @@ static gboolean _run(const _Option *option)
 
   if (!xsk_initialize(&xsk)) {
     _error_occurred = TRUE;
-    return FALSE;
   }
-
   /* load config */
-
-  if (!xsk_start(&xsk, option->device_filepath)) {
+  else if (!xsk_start(&xsk, option->device_filepath)) {
     _error_occurred = TRUE;
   }
 

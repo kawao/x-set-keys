@@ -20,9 +20,20 @@
 #ifndef _KEYBOARD_DEVICE_H
 #define _KEYBOARD_DEVICE_H
 
+#include <stdint.h>
+#include <linux/input.h>
+
 #include "x-set-keys.h"
 
 gboolean kd_initialize(XSetKeys *xsk, const gchar *device_filepath);
 void kd_finalize(XSetKeys *xsk);
+
+#define KD_EV_BITS_LENGTH (EV_MAX/8 + 1)
+gboolean kd_get_ev_bits(XSetKeys *xsk, uint8_t ev_bits[]);
+
+#define KD_KEY_BITS_LENGTH (KEY_MAX/8 + 1)
+gboolean kd_get_key_bits(XSetKeys *xsk, uint8_t key_bits[]);
+
+#define kd_test_bit(array, bit) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
 
 #endif  /* _KEYBOARD_DEVICE_H */

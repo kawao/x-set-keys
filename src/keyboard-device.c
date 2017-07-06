@@ -24,8 +24,6 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <linux/input.h>
 
 #include "common.h"
 #include "keyboard-device.h"
@@ -36,8 +34,6 @@ typedef struct __KeyboardDevice {
   XSetKeys *xsk;
 } _KeyboardDevice;
 
-#define _test_bit(bit, array) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
-
 static gint _open_device_file(const gchar *device_filepath);
 static gint _find_keyboard();
 static gboolean _is_keyboard(gint fd);
@@ -46,6 +42,8 @@ static gboolean _check(GSource *source);
 static gboolean _dispatch(GSource *source,
                           GSourceFunc callback,
                           gpointer user_data);
+static gboolean _get_ev_bits(gint fd, uint8_t ev_bits[]);
+static gboolean _get_key_bits(gint fd, uint8_t key_bits[]);
 
 gboolean kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
 {
@@ -87,6 +85,20 @@ void kd_finalize(XSetKeys *xsk)
   }
   g_source_destroy((GSource *)kd);
   g_source_unref((GSource *)kd);
+}
+
+gboolean kd_get_ev_bits(XSetKeys *xsk, uint8_t ev_bits[])
+{
+  _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
+
+  return _get_ev_bits(kd->poll_fd.fd, ev_bits);
+}
+
+gboolean kd_get_key_bits(XSetKeys *xsk, uint8_t key_bits[])
+{
+  _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
+
+  return _get_key_bits(kd->poll_fd.fd, key_bits);
 }
 
 static gint _open_device_file(const gchar *device_filepath)
@@ -140,27 +152,27 @@ static gint _find_keyboard()
 static gboolean _is_keyboard(gint fd)
 {
   gint index;
-  uint8_t ev_bits[EV_MAX/8 + 1] = { 0 };
-  uint8_t key_bits[KEY_MAX/8 + 1] = { 0 };
+  uint8_t ev_bits[KD_EV_BITS_LENGTH] = { 0 };
+  uint8_t key_bits[KD_KEY_BITS_LENGTH] = { 0 };
 
-  if (ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), ev_bits) < 0) {
+  if (!_get_ev_bits(fd, ev_bits)) {
     return FALSE;
   }
-  if (!_test_bit(EV_KEY, ev_bits)) {
+  if (!kd_test_bit(ev_bits, EV_KEY)) {
     return FALSE;
   }
-  if (_test_bit(EV_REL, ev_bits)) {
+  if (kd_test_bit(ev_bits, EV_REL)) {
     return FALSE;
   }
-  if (_test_bit(EV_ABS, ev_bits)) {
+  if (kd_test_bit(ev_bits, EV_ABS)) {
     return FALSE;
   }
 
-  if (ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), key_bits) < 0) {
+  if (!_get_key_bits(fd, key_bits)) {
     return FALSE;
   }
   for (index = KEY_Q; index <= KEY_P; index++) {
-    if (!_test_bit(index, key_bits)) {
+    if (!kd_test_bit(key_bits, index)) {
       return FALSE;
     }
   }
@@ -188,11 +200,21 @@ static gboolean _dispatch(GSource *source,
   _KeyboardDevice *kd = (_KeyboardDevice *)source;
 
   if (kd->poll_fd.revents & G_IO_HUP) {
-    handle_fatal_error("Hang up Keyboard device");
+    handle_fatal_error("Hang up keyboard device");
   } else if (kd->poll_fd.revents & G_IO_ERR) {
-    handle_fatal_error("Error on Keyboard device");
+    handle_fatal_error("Error on keyboard device");
   } else if (kd->poll_fd.revents & G_IO_IN) {
 
   }
   return G_SOURCE_CONTINUE;
+}
+
+static gboolean _get_ev_bits(gint fd, uint8_t ev_bits[])
+{
+  return ioctl(fd, EVIOCGBIT(0, KD_EV_BITS_LENGTH), ev_bits) >= 0;
+}
+
+static gboolean _get_key_bits(gint fd, uint8_t key_bits[])
+{
+  return ioctl(fd, EVIOCGBIT(EV_KEY, KD_KEY_BITS_LENGTH), key_bits) >= 0;
 }
