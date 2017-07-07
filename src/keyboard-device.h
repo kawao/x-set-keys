@@ -36,4 +36,6 @@ gboolean kd_get_key_bits(XSetKeys *xsk, uint8_t key_bits[]);
 
 #define kd_test_bit(array, bit) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
 
+gboolean kd_write(XSetKeys *xsk, gconstpointer buffer, gsize length);
+
 #endif  /* _KEYBOARD_DEVICE_H */

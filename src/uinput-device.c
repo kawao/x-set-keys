@@ -43,6 +43,7 @@ static gboolean _check(GSource *source);
 static gboolean _dispatch(GSource *source,
                           GSourceFunc callback,
                           gpointer user_data);
+static gboolean _write(gint fd, gconstpointer buffer, gsize length);
 
 gboolean ud_initialize(XSetKeys *xsk)
 {
@@ -85,11 +86,21 @@ void ud_finalize(XSetKeys *xsk)
 {
   _UInputDevice *ud = xsk_get_uinput_device(xsk);
 
+  if (ioctl(ud->poll_fd.fd, UI_DEV_DESTROY) < 0) {
+    g_critical("Failed to destroy uinput device : %s", strerror(errno));
+  }
   if (close(ud->poll_fd.fd) < 0) {
     g_critical("Failed to close uinput device : %s", strerror(errno));
   }
   g_source_destroy((GSource *)ud);
   g_source_unref((GSource *)ud);
+}
+
+gboolean ud_write(XSetKeys *xsk, gconstpointer buffer, gsize length)
+{
+  _UInputDevice *ud = xsk_get_uinput_device(xsk);
+
+  return _write(ud->poll_fd.fd, buffer, length);
 }
 
 static gint _open_uinput_device()
@@ -119,7 +130,7 @@ static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
   device.id.vendor = 1;
   device.id.product = 1;
   device.id.version = 1;
-  if (write(fd, &device, sizeof(device)) < 0) {
+  if (!_write(fd, &device, sizeof(device))) {
     g_critical("Failed to write uinput user device : %s", strerror(errno));
     return FALSE;
   }
@@ -136,6 +147,7 @@ static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
                    index, strerror(errno));
         return FALSE;
       }
+      debug_print("UI_SET_EVBIT : %02x", index);
     }
   }
 
@@ -151,6 +163,7 @@ static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
                    index, strerror(errno));
         return FALSE;
       }
+      debug_print("UI_SET_KEYBIT : %d", index);
     }
   }
 
@@ -185,7 +198,39 @@ static gboolean _dispatch(GSource *source,
   } else if (ud->poll_fd.revents & G_IO_ERR) {
     handle_fatal_error("Error on uinput device");
   } else if (ud->poll_fd.revents & G_IO_IN) {
+    gssize length;
+    guchar buffer[256];
+
+    do {
+      length = read(ud->poll_fd.fd, buffer, sizeof(buffer));
+    } while (length <= 0 && errno == EINTR);
+
+    if (length <= 0) {
+      handle_fatal_error("Failed to read uinput device");
+    } else {
+      debug_print("Read from uinput : length=%ld", length);
+      if (!kd_write(ud->xsk, buffer, length)) {
+        handle_fatal_error("Failed to write keyboard device");
+      }
+    }
 
   }
   return G_SOURCE_CONTINUE;
+}
+
+static gboolean _write(gint fd, gconstpointer buffer, gsize length)
+{
+  gssize rest = length;
+  while (rest > 0) {
+    gssize written = write(fd, buffer, rest);
+    if (written < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      return FALSE;
+    }
+    rest -= written;
+    buffer += written;
+  }
+  return TRUE;
 }

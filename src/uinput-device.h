@@ -24,5 +24,6 @@
 
 gboolean ud_initialize(XSetKeys *xsk);
 void ud_finalize(XSetKeys *xsk);
+gboolean ud_write(XSetKeys *xsk, gconstpointer buffer, gsize length);
 
 #endif  /* _UINPUT_DEVICE_H */

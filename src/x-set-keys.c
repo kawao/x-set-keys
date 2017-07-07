@@ -39,10 +39,10 @@ gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
 
 void xsk_finalize(XSetKeys *xsk)
 {
-  if (xsk_get_keyboard_device(xsk)) {
-    kd_finalize(xsk);
-  }
   if (xsk_get_uinput_device(xsk)) {
     ud_finalize(xsk);
+  }
+  if (xsk_get_keyboard_device(xsk)) {
+    kd_finalize(xsk);
   }
 }

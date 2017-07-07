@@ -27,6 +27,7 @@
 
 #include "common.h"
 #include "keyboard-device.h"
+#include "uinput-device.h"
 
 typedef struct __KeyboardDevice {
   GSource source;
@@ -80,6 +81,9 @@ void kd_finalize(XSetKeys *xsk)
 {
   _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
 
+  if (ioctl(kd->poll_fd.fd, EVIOCGRAB, 0) < 0) {
+    g_critical("Failed to ungrab keyboard device : %s", strerror(errno));
+  }
   if (close(kd->poll_fd.fd) < 0) {
     g_critical("Failed to close keyboard device : %s", strerror(errno));
   }
@@ -101,6 +105,25 @@ gboolean kd_get_key_bits(XSetKeys *xsk, uint8_t key_bits[])
   return _get_key_bits(kd->poll_fd.fd, key_bits);
 }
 
+gboolean kd_write(XSetKeys *xsk, gconstpointer buffer, gsize length)
+{
+  _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
+  gssize rest = length;
+
+  while (rest > 0) {
+    gssize written = write(kd->poll_fd.fd, buffer, rest);
+    if (written < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      return FALSE;
+    }
+    rest -= written;
+    buffer += written;
+  }
+  return TRUE;
+}
+
 static gint _open_device_file(const gchar *device_filepath)
 {
   gint fd;
@@ -115,7 +138,7 @@ static gint _open_device_file(const gchar *device_filepath)
     fd = _find_keyboard();
     if (fd < 0) {
       g_critical("Can not find keyboard device."
-                 "Maybe you need root privilege to run %s.",
+                 " Maybe you need root privilege to run %s.",
                  g_get_prgname());
       return -1;
     }
@@ -204,6 +227,24 @@ static gboolean _dispatch(GSource *source,
   } else if (kd->poll_fd.revents & G_IO_ERR) {
     handle_fatal_error("Error on keyboard device");
   } else if (kd->poll_fd.revents & G_IO_IN) {
+    gssize length;
+    struct input_event event;
+
+    do {
+      length = read(kd->poll_fd.fd, &event, sizeof(event));
+    } while (length <= 0 && errno == EINTR);
+
+    if (length != sizeof(event)) {
+      handle_fatal_error("Failed to read keyboard device");
+    } else {
+      debug_print("Read from keyboard : type=%02x code=%d value=%d",
+                  event.type,
+                  event.code,
+                  event.value);
+      if (!ud_write(kd->xsk, &event, sizeof(event))) {
+        handle_fatal_error("Failed to write uinput device");
+      }
+    }
 
   }
   return G_SOURCE_CONTINUE;
