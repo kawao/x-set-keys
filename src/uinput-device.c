@@ -68,7 +68,7 @@ gboolean ud_initialize(XSetKeys *xsk)
     return FALSE;
   }
 
-  source = g_source_new(&event_funcs, sizeof(_UInputDevice));
+  source = g_source_new(&event_funcs, sizeof (_UInputDevice));
   ud = (_UInputDevice *)source;
 
   ud->xsk = xsk;
@@ -96,11 +96,37 @@ void ud_finalize(XSetKeys *xsk)
   g_source_unref((GSource *)ud);
 }
 
-gboolean ud_write(XSetKeys *xsk, gconstpointer buffer, gsize length)
+gboolean ud_send_key_event(XSetKeys *xsk, KeyCode key_cord, gboolean is_press)
+{
+  struct input_event event;
+
+  event.type = EV_KEY;
+  event.code = key_cord;
+  event.value = is_press ? 1 : 0;
+  if (!ud_send_event(xsk, &event)) {
+    return FALSE;
+  }
+
+  event.type = EV_SYN;
+  event.code = SYN_REPORT;
+  event.value = 0;
+  if (!ud_send_event(xsk, &event)) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+gboolean ud_send_event(XSetKeys *xsk, struct input_event *event)
 {
   _UInputDevice *ud = xsk_get_uinput_device(xsk);
 
-  return _write(ud->poll_fd.fd, buffer, length);
+  gettimeofday(&event->time, NULL);
+  if (!_write(ud->poll_fd.fd, event, sizeof (*event))) {
+    handle_fatal_error("Failed to write uinput device");
+    return FALSE;
+  }
+  return TRUE;
 }
 
 static gint _open_uinput_device()
@@ -130,7 +156,7 @@ static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
   device.id.vendor = 1;
   device.id.product = 1;
   device.id.version = 1;
-  if (!_write(fd, &device, sizeof(device))) {
+  if (!_write(fd, &device, sizeof (device))) {
     g_critical("Failed to write uinput user device : %s", strerror(errno));
     return FALSE;
   }
@@ -202,16 +228,14 @@ static gboolean _dispatch(GSource *source,
     guchar buffer[256];
 
     do {
-      length = read(ud->poll_fd.fd, buffer, sizeof(buffer));
+      length = read(ud->poll_fd.fd, buffer, sizeof (buffer));
     } while (length <= 0 && errno == EINTR);
 
     if (length <= 0) {
       handle_fatal_error("Failed to read uinput device");
     } else {
       debug_print("Read from uinput : length=%ld", length);
-      if (!kd_write(ud->xsk, buffer, length)) {
-        handle_fatal_error("Failed to write keyboard device");
-      }
+      kd_write(ud->xsk, buffer, length);
     }
 
   }

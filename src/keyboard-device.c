@@ -63,7 +63,7 @@ gboolean kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
   if (fd < 0) {
     return FALSE;
   }
-  source = g_source_new(&event_funcs, sizeof(_KeyboardDevice));
+  source = g_source_new(&event_funcs, sizeof (_KeyboardDevice));
   kd = (_KeyboardDevice *)source;
 
   kd->xsk = xsk;
@@ -116,6 +116,7 @@ gboolean kd_write(XSetKeys *xsk, gconstpointer buffer, gsize length)
       if (errno == EINTR) {
         continue;
       }
+      handle_fatal_error("Failed to write keyboard device");
       return FALSE;
     }
     rest -= written;
@@ -158,7 +159,7 @@ static gint _find_keyboard()
   gint fd;
 
   for (index = 0; index < 32; index++) {
-    snprintf(filepath, sizeof(filepath), "/dev/input/event%d", index);
+    snprintf(filepath, sizeof (filepath), "/dev/input/event%d", index);
     fd = open(filepath, O_RDWR);
     if (fd < 0) {
       continue;
@@ -231,19 +232,17 @@ static gboolean _dispatch(GSource *source,
     struct input_event event;
 
     do {
-      length = read(kd->poll_fd.fd, &event, sizeof(event));
+      length = read(kd->poll_fd.fd, &event, sizeof (event));
     } while (length <= 0 && errno == EINTR);
 
-    if (length != sizeof(event)) {
+    if (length != sizeof (event)) {
       handle_fatal_error("Failed to read keyboard device");
     } else {
       debug_print("Read from keyboard : type=%02x code=%d value=%d",
                   event.type,
                   event.code,
                   event.value);
-      if (!ud_write(kd->xsk, &event, sizeof(event))) {
-        handle_fatal_error("Failed to write uinput device");
-      }
+      ud_send_event(kd->xsk, &event);
     }
 
   }

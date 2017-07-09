@@ -24,6 +24,7 @@
 
 gboolean ud_initialize(XSetKeys *xsk);
 void ud_finalize(XSetKeys *xsk);
-gboolean ud_write(XSetKeys *xsk, gconstpointer buffer, gsize length);
+gboolean ud_send_key_event(XSetKeys *xsk, KeyCode key_cord, gboolean is_press);
+gboolean ud_send_event(XSetKeys *xsk, struct input_event *event);
 
 #endif  /* _UINPUT_DEVICE_H */
