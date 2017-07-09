@@ -45,6 +45,7 @@ static gboolean _run(const _Option *option);
 gint main(gint argc, const gchar *argv[])
 {
   _Option option = { 0 };
+  gint error_retry_count = 0;
 
   g_set_prgname(g_path_get_basename(argv[0]));
   _set_debug_flag();
@@ -57,6 +58,15 @@ gint main(gint argc, const gchar *argv[])
   XSetIOErrorHandler(_handle_xio_error);
 
   while (_run(&option)) {
+    if (_error_occurred) {
+      if (++error_retry_count > 10) {
+        g_critical("Maximum error retry count exceeded");
+        break;
+      }
+      _error_occurred = FALSE;
+    } else {
+      error_retry_count = 0;
+    }
     g_message("Restarting");
   }
   g_message("Exiting");
@@ -82,7 +92,7 @@ static gint _handle_x_error(Display *display, XErrorEvent *event)
 {
   gchar message[256];
 
-  XGetErrorText(display, event->error_code, message, sizeof(message));
+  XGetErrorText(display, event->error_code, message, sizeof (message));
   g_critical("X protocol error : %s on protocol request %d",
              message,
              event->request_code);
@@ -116,8 +126,6 @@ static gboolean _run(const _Option *option)
 {
   gboolean result = TRUE;
   XSetKeys xsk = { 0 };
-
-  _error_occurred = FALSE;
 
   if (!xsk_initialize(&xsk)) {
     _error_occurred = TRUE;
