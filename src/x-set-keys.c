@@ -28,21 +28,24 @@ gboolean xsk_initialize(XSetKeys *xsk)
 
 gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
 {
-  if (!kd_initialize(xsk, device_filepath)) {
+  xsk->keyboard_device = kd_initialize(xsk, device_filepath);
+  if (!xsk->keyboard_device) {
     return FALSE;
   }
-  if (!ud_initialize(xsk)) {
+  xsk->uinput_device = ud_initialize(xsk);
+  if (!xsk->uinput_device) {
     return FALSE;
   }
+
   return TRUE;
 }
 
 void xsk_finalize(XSetKeys *xsk)
 {
-  if (xsk_get_uinput_device(xsk)) {
+  if (xsk->uinput_device) {
     ud_finalize(xsk);
   }
-  if (xsk_get_keyboard_device(xsk)) {
+  if (xsk->keyboard_device) {
     kd_finalize(xsk);
   }
 }

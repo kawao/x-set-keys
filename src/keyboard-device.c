@@ -21,108 +21,50 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <string.h>
-#include <errno.h>
 #include <stdio.h>
 
 #include "common.h"
 #include "keyboard-device.h"
 #include "uinput-device.h"
 
-typedef struct __KeyboardDevice {
-  GSource source;
-  GPollFD poll_fd;
-  XSetKeys *xsk;
-} _KeyboardDevice;
-
 static gint _open_device_file(const gchar *device_filepath);
 static gint _find_keyboard();
 static gboolean _is_keyboard(gint fd);
-static gboolean _prepare(GSource *source, gint *timeout);
-static gboolean _check(GSource *source);
-static gboolean _dispatch(GSource *source,
-                          GSourceFunc callback,
-                          gpointer user_data);
 static gboolean _get_ev_bits(gint fd, uint8_t ev_bits[]);
 static gboolean _get_key_bits(gint fd, uint8_t key_bits[]);
+static gboolean _handle_event(gpointer user_data);
 
-gboolean kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
+Device *kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
 {
-  static GSourceFuncs event_funcs = {
-    _prepare,
-    _check,
-    _dispatch,
-    NULL
-  };
-
-  gint fd;
-  GSource *source;
-  _KeyboardDevice *kd;
-
-  fd = _open_device_file(device_filepath);
+  gint fd = _open_device_file(device_filepath);
   if (fd < 0) {
-    return FALSE;
+    return NULL;
   }
-  source = g_source_new(&event_funcs, sizeof (_KeyboardDevice));
-  kd = (_KeyboardDevice *)source;
-
-  kd->xsk = xsk;
-  kd->poll_fd.fd = fd;
-  kd->poll_fd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
-  g_source_add_poll(source, &kd->poll_fd);
-  g_source_attach(source, NULL);
-
-  xsk_set_keyboard_device(xsk, kd);
-
-  return TRUE;
+  return device_initialize(fd, "keyboard device", _handle_event, xsk);
 }
 
 void kd_finalize(XSetKeys *xsk)
 {
-  _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
+  Device *device = xsk_get_keyboard_device(xsk);
 
-  if (ioctl(kd->poll_fd.fd, EVIOCGRAB, 0) < 0) {
-    g_critical("Failed to ungrab keyboard device : %s", strerror(errno));
+  if (ioctl(device_get_fd(device), EVIOCGRAB, 0) < 0) {
+    print_error("Failed to ungrab keyboard device");
   }
-  if (close(kd->poll_fd.fd) < 0) {
-    g_critical("Failed to close keyboard device : %s", strerror(errno));
-  }
-  g_source_destroy((GSource *)kd);
-  g_source_unref((GSource *)kd);
+  device_finalize(device);
 }
 
 gboolean kd_get_ev_bits(XSetKeys *xsk, uint8_t ev_bits[])
 {
-  _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
+  Device *device = xsk_get_keyboard_device(xsk);
 
-  return _get_ev_bits(kd->poll_fd.fd, ev_bits);
+  return _get_ev_bits(device_get_fd(device), ev_bits);
 }
 
 gboolean kd_get_key_bits(XSetKeys *xsk, uint8_t key_bits[])
 {
-  _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
+  Device *device = xsk_get_keyboard_device(xsk);
 
-  return _get_key_bits(kd->poll_fd.fd, key_bits);
-}
-
-gboolean kd_write(XSetKeys *xsk, gconstpointer buffer, gsize length)
-{
-  _KeyboardDevice *kd = xsk_get_keyboard_device(xsk);
-  gssize rest = length;
-
-  while (rest > 0) {
-    gssize written = write(kd->poll_fd.fd, buffer, rest);
-    if (written < 0) {
-      if (errno == EINTR) {
-        continue;
-      }
-      handle_fatal_error("Failed to write keyboard device");
-      return FALSE;
-    }
-    rest -= written;
-    buffer += written;
-  }
-  return TRUE;
+  return _get_key_bits(device_get_fd(device), key_bits);
 }
 
 static gint _open_device_file(const gchar *device_filepath)
@@ -132,7 +74,7 @@ static gint _open_device_file(const gchar *device_filepath)
   if (device_filepath) {
     fd = open(device_filepath, O_RDWR);
     if (fd < 0) {
-      g_critical("Failed to open %s : %s", device_filepath, strerror(errno));
+      print_error("Failed to open %s", device_filepath);
       return -1;
     }
   } else {
@@ -145,7 +87,7 @@ static gint _open_device_file(const gchar *device_filepath)
     }
   }
   if (ioctl(fd, EVIOCGRAB, 1) < 0) {
-    g_critical("Failed to grab keyboard : %s", strerror(errno));
+    print_error("Failed to grab keyboard device");
     close(fd);
     return -1;
   }
@@ -204,51 +146,6 @@ static gboolean _is_keyboard(gint fd)
   return TRUE;
 }
 
-static gboolean _prepare(GSource *source, gint *timeout)
-{
-  *timeout = -1;
-  return FALSE;
-}
-
-static gboolean _check(GSource *source)
-{
-  _KeyboardDevice *kd = (_KeyboardDevice *)source;
-
-  return (kd->poll_fd.revents & (G_IO_IN | G_IO_HUP | G_IO_ERR)) != 0;
-}
-
-static gboolean _dispatch(GSource *source,
-                          GSourceFunc callback,
-                          gpointer user_data)
-{
-  _KeyboardDevice *kd = (_KeyboardDevice *)source;
-
-  if (kd->poll_fd.revents & G_IO_HUP) {
-    handle_fatal_error("Hang up keyboard device");
-  } else if (kd->poll_fd.revents & G_IO_ERR) {
-    handle_fatal_error("Error on keyboard device");
-  } else if (kd->poll_fd.revents & G_IO_IN) {
-    gssize length;
-    struct input_event event;
-
-    do {
-      length = read(kd->poll_fd.fd, &event, sizeof (event));
-    } while (length <= 0 && errno == EINTR);
-
-    if (length != sizeof (event)) {
-      handle_fatal_error("Failed to read keyboard device");
-    } else {
-      debug_print("Read from keyboard : type=%02x code=%d value=%d",
-                  event.type,
-                  event.code,
-                  event.value);
-      ud_send_event(kd->xsk, &event);
-    }
-
-  }
-  return G_SOURCE_CONTINUE;
-}
-
 static gboolean _get_ev_bits(gint fd, uint8_t ev_bits[])
 {
   return ioctl(fd, EVIOCGBIT(0, KD_EV_BITS_LENGTH), ev_bits) >= 0;
@@ -257,4 +154,31 @@ static gboolean _get_ev_bits(gint fd, uint8_t ev_bits[])
 static gboolean _get_key_bits(gint fd, uint8_t key_bits[])
 {
   return ioctl(fd, EVIOCGBIT(EV_KEY, KD_KEY_BITS_LENGTH), key_bits) >= 0;
+}
+
+static gboolean _handle_event(gpointer user_data)
+{
+  XSetKeys *xsk;
+  Device *device;
+  gssize length;
+  struct input_event event;
+
+  xsk = user_data;
+  device = xsk_get_keyboard_device(xsk);
+
+  length = device_read(device, &event, sizeof (event));
+  if (length < 0) {
+    return FALSE;
+  }
+  if (length != sizeof (event)) {
+    g_critical("Tow few read length from keyboard device : read=%ld < %ld",
+               length,
+               sizeof (event));
+    return FALSE;
+  }
+  debug_print("Read from keyboard : type=%02x code=%d value=%d",
+              event.type,
+              event.code,
+              event.value);
+  return ud_send_event(xsk, &event);
 }

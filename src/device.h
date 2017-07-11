@@ -17,26 +17,25 @@
  *
  ***************************************************************************/
 
-#ifndef _KEYBOARD_DEVICE_H
-#define _KEYBOARD_DEVICE_H
+#ifndef _DEVICE_H
+#define _DEVICE_H
 
-#include <stdint.h>
-#include <linux/input.h>
+#include "glib.h"
 
-#include "x-set-keys.h"
+typedef struct _Device {
+  GSource source;
+  GPollFD poll_fd;
+} Device;
 
-Device *kd_initialize(XSetKeys *xsk, const gchar *device_filepath);
-void kd_finalize(XSetKeys *xsk);
+Device *device_initialize(gint fd,
+                          const char *name,
+                          GSourceFunc callback,
+                          gpointer user_data);
+void device_finalize(Device *device);
 
-#define KD_EV_BITS_LENGTH (EV_MAX/8 + 1)
-gboolean kd_get_ev_bits(XSetKeys *xsk, uint8_t ev_bits[]);
+#define device_get_fd(device) ((device)->poll_fd.fd)
 
-#define KD_KEY_BITS_LENGTH (KEY_MAX/8 + 1)
-gboolean kd_get_key_bits(XSetKeys *xsk, uint8_t key_bits[]);
+gssize device_read(Device *device, gpointer buffer, gsize length);
+gboolean device_write(Device *device, gconstpointer buffer, gsize length);
 
-#define kd_test_bit(array, bit) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
-
-#define kd_write(xsk, buffer, length)                               \
-  device_write(xsk_get_keyboard_device(xsk), (buffer), (length))
-
-#endif  /* _KEYBOARD_DEVICE_H */
+#endif  /* _DEVICE_H */

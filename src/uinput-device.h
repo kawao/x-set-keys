@@ -20,10 +20,13 @@
 #ifndef _UINPUT_DEVICE_H
 #define _UINPUT_DEVICE_H
 
+#include <linux/input.h>
+
 #include "x-set-keys.h"
 
-gboolean ud_initialize(XSetKeys *xsk);
+Device *ud_initialize(XSetKeys *xsk);
 void ud_finalize(XSetKeys *xsk);
+
 gboolean ud_send_key_event(XSetKeys *xsk, KeyCode key_cord, gboolean is_press);
 gboolean ud_send_event(XSetKeys *xsk, struct input_event *event);
 

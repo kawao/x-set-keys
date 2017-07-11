@@ -74,6 +74,11 @@ gint main(gint argc, const gchar *argv[])
   return _error_occurred ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
+void notify_error()
+{
+  _error_occurred = TRUE;
+}
+
 static void _set_debug_flag()
 {
   const gchar *domains = g_getenv("G_MESSAGES_DEBUG");
@@ -97,7 +102,6 @@ static gint _handle_x_error(Display *display, XErrorEvent *event)
              message,
              event->request_code);
   _error_occurred = TRUE;
-  g_main_context_wakeup(NULL);
   return 0;
 }
 
@@ -105,21 +109,7 @@ static gint _handle_xio_error(Display *display)
 {
   g_critical("Connection lost to X server `%s'", DisplayString(display));
   _error_occurred = TRUE;
-  g_main_context_wakeup(NULL);
   return 0;
-}
-
-void handle_fatal_error(const gchar *message)
-{
-  if (message) {
-    if (errno) {
-      g_critical("%s : %s", message, strerror(errno));
-    } else {
-      g_critical(message);
-    }
-  }
-  _error_occurred = TRUE;
-  g_main_context_wakeup(NULL);
 }
 
 static gboolean _run(const _Option *option)

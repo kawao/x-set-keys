@@ -20,6 +20,8 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <errno.h>
+#include <string.h>
 #include <glib.h>
 
 #ifndef MAIN
@@ -27,11 +29,15 @@ extern const
 #endif
 gboolean is_debug;
 
-#define debug_print(format, ...) if (is_debug) \
+#define debug_print(format, ...) if (is_debug)                          \
     g_debug("%s:%d (%s) " format, __FILE__, __LINE__, G_STRFUNC, ##__VA_ARGS__)
+
+#define print_error(format, ...)                                        \
+  (errno ? g_critical(format " : %s", ##__VA_ARGS__, strerror(errno))   \
+   : g_critical(format, ##__VA_ARGS__))
 
 #define array_num(array) (sizeof(array)/sizeof(*array))
 
-void handle_fatal_error(const gchar *message);
+void notify_error();
 
 #endif /* _COMMON_H */
