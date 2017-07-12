@@ -29,7 +29,10 @@ typedef struct _XSetKeys {
   Display *display;
   Device *keyboard_device;
   Device *uinput_device;
-  guchar key_state[256];
+  guchar keyboard_kaymap[G_MAXUINT8];
+  guchar uinput_keymap[G_MAXUINT8];
+  struct timeval key_press_start_time;
+  guint16 uinput_last_event_type;
 } XSetKeys;
 
 gboolean xsk_initialize(XSetKeys *xsk);
@@ -38,5 +41,19 @@ void xsk_finalize(XSetKeys *xsk);
 
 #define xsk_get_keyboard_device(xsk) ((xsk)->keyboard_device)
 #define xsk_get_uinput_device(xsk) ((xsk)->uinput_device)
+
+#define xsk_get_keyboard_keymap(xsk) ((xsk)->keyboard_kaymap)
+#define xsk_get_uinput_keymap(xsk) ((xsk)->uinput_keymap)
+
+#define xsk_get_key_press_start_time(xsk) ((xsk)->key_press_start_time)
+#define xsk_set_key_press_start_time(xsk, time) \
+  ((xsk)->key_press_start_time = (time))
+
+#define xsk_get_uinput_last_event_type(xsk) ((xsk)->uinput_last_event_type)
+#define xsk_set_uinput_last_event_type(xsk, type) \
+  ((xsk)->uinput_last_event_type = (type))
+
+#define xsk_is_valid_key(key) ((key) > 0 && (key) < G_MAXUINT8)
+
 
 #endif /* _X_SET_KEYS_H */

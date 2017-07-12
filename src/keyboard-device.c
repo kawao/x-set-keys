@@ -30,17 +30,32 @@
 static gint _open_device_file(const gchar *device_filepath);
 static gint _find_keyboard();
 static gboolean _is_keyboard(gint fd);
-static gboolean _get_ev_bits(gint fd, uint8_t ev_bits[]);
-static gboolean _get_key_bits(gint fd, uint8_t key_bits[]);
-static gboolean _handle_event(gpointer user_data);
+static gboolean _initialize_keys(Device *device);
+static gboolean _get_ev_bits(gint fd, guint8 ev_bits[]);
+static gboolean _get_key_bits(gint fd, guint8 key_bits[]);
+static gboolean _handle_input(gpointer user_data);
 
 Device *kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
 {
-  gint fd = _open_device_file(device_filepath);
+  gint fd;
+  Device *device;
+
+  fd = _open_device_file(device_filepath);
   if (fd < 0) {
     return NULL;
   }
-  return device_initialize(fd, "keyboard device", _handle_event, xsk);
+
+  device = device_initialize(fd, "keyboard device", _handle_input, xsk);
+  if (!_initialize_keys(device)) {
+    device_finalize(device);
+    return NULL;
+  }
+  if (ioctl(fd, EVIOCGRAB, 1) < 0) {
+    print_error("Failed to grab keyboard device");
+    device_finalize(device);
+    return NULL;
+  }
+  return device;
 }
 
 void kd_finalize(XSetKeys *xsk)
@@ -53,14 +68,14 @@ void kd_finalize(XSetKeys *xsk)
   device_finalize(device);
 }
 
-gboolean kd_get_ev_bits(XSetKeys *xsk, uint8_t ev_bits[])
+gboolean kd_get_ev_bits(XSetKeys *xsk, guint8 ev_bits[])
 {
   Device *device = xsk_get_keyboard_device(xsk);
 
   return _get_ev_bits(device_get_fd(device), ev_bits);
 }
 
-gboolean kd_get_key_bits(XSetKeys *xsk, uint8_t key_bits[])
+gboolean kd_get_key_bits(XSetKeys *xsk, guint8 key_bits[])
 {
   Device *device = xsk_get_keyboard_device(xsk);
 
@@ -85,11 +100,6 @@ static gint _open_device_file(const gchar *device_filepath)
                  g_get_prgname());
       return -1;
     }
-  }
-  if (ioctl(fd, EVIOCGRAB, 1) < 0) {
-    print_error("Failed to grab keyboard device");
-    close(fd);
-    return -1;
   }
   return fd;
 }
@@ -117,9 +127,9 @@ static gint _find_keyboard()
 
 static gboolean _is_keyboard(gint fd)
 {
+  guint8 ev_bits[KD_EV_BITS_LENGTH] = { 0 };
+  guint8 key_bits[KD_KEY_BITS_LENGTH] = { 0 };
   gint index;
-  uint8_t ev_bits[KD_EV_BITS_LENGTH] = { 0 };
-  uint8_t key_bits[KD_KEY_BITS_LENGTH] = { 0 };
 
   if (!_get_ev_bits(fd, ev_bits)) {
     return FALSE;
@@ -146,17 +156,46 @@ static gboolean _is_keyboard(gint fd)
   return TRUE;
 }
 
-static gboolean _get_ev_bits(gint fd, uint8_t ev_bits[])
+static gboolean _initialize_keys(Device *device)
+{
+  guint8 key_bits[KD_KEY_BITS_LENGTH] = { 0 };
+  struct input_event event = { { 0 } };
+  gint index;
+
+  gettimeofday(&event.time, NULL);
+  event.type = EV_KEY;
+  event.value = 0;
+
+  if (!_get_key_bits(device_get_fd(device), key_bits)) {
+    print_error("Failed to get key bits from keyboard device");
+    return FALSE;
+  }
+  for (index = 0; index < KEY_CNT; index++) {
+    if (kd_test_bit(key_bits, index)) {
+      event.code = index;
+      if (!device_write(device, &event, sizeof (event))) {
+        return FALSE;
+      }
+    }
+  }
+
+  event.type = EV_SYN;
+  event.code = SYN_REPORT;
+  event.value = 0;
+  return device_write(device, &event, sizeof (event));
+}
+
+static gboolean _get_ev_bits(gint fd, guint8 ev_bits[])
 {
   return ioctl(fd, EVIOCGBIT(0, KD_EV_BITS_LENGTH), ev_bits) >= 0;
 }
 
-static gboolean _get_key_bits(gint fd, uint8_t key_bits[])
+static gboolean _get_key_bits(gint fd, guint8 key_bits[])
 {
   return ioctl(fd, EVIOCGBIT(EV_KEY, KD_KEY_BITS_LENGTH), key_bits) >= 0;
 }
 
-static gboolean _handle_event(gpointer user_data)
+static gboolean _handle_input(gpointer user_data)
 {
   XSetKeys *xsk;
   Device *device;
@@ -176,9 +215,33 @@ static gboolean _handle_event(gpointer user_data)
                sizeof (event));
     return FALSE;
   }
+
   debug_print("Read from keyboard : type=%02x code=%d value=%d",
               event.type,
               event.code,
               event.value);
+  switch (event.type) {
+  case EV_MSC:
+    if (event.code == MSC_SCAN) {
+      return TRUE;
+    }
+    break;
+  case EV_KEY:
+    if (xsk_is_valid_key(event.code)) {
+      switch (event.value) {
+      case 0:
+        kd_is_key_pressed(xsk, event.code) = FALSE;
+        break;
+      case 1:
+        kd_is_key_pressed(xsk, event.code) = TRUE;
+        xsk_set_key_press_start_time(xsk, event.time);
+        break;
+      default:
+        break;
+      }
+    }
+    break;
+  }
+
   return ud_send_event(xsk, &event);
 }

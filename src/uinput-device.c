@@ -28,8 +28,10 @@
 #include "keyboard-device.h"
 
 static gint _open_uinput_device();
-static gboolean _create_uinput_device(XSetKeys *xsk, Device *device);
-static gboolean _handle_event(gpointer user_data);
+static gboolean _write_user_dev(Device *device);
+static gboolean _set_evbits(Device *device, XSetKeys *xsk);
+static gboolean _set_keybits(Device *device, XSetKeys *xsk);
+static gboolean _handle_input(gpointer user_data);
 
 Device *ud_initialize(XSetKeys *xsk)
 {
@@ -41,8 +43,21 @@ Device *ud_initialize(XSetKeys *xsk)
                " Maybe uinput module is not loaded");
     return NULL;
   }
-  device = device_initialize(fd, "uinput device", _handle_event, xsk);
-  if (!_create_uinput_device(xsk, device)) {
+  device = device_initialize(fd, "uinput device", _handle_input, xsk);
+  if (!_write_user_dev(device)) {
+    device_finalize(device);
+    return NULL;
+  }
+  if (!_set_evbits(device, xsk)) {
+    device_finalize(device);
+    return NULL;
+  }
+  if (!_set_keybits(device, xsk)) {
+    device_finalize(device);
+    return NULL;
+  }
+  if (ioctl(fd, UI_DEV_CREATE) < 0) {
+    print_error("Failed to create uinput device");
     device_finalize(device);
     return NULL;
   }
@@ -84,6 +99,20 @@ gboolean ud_send_event(XSetKeys *xsk, struct input_event *event)
 {
   Device *device = xsk_get_uinput_device(xsk);
 
+  switch (event->type) {
+  case EV_SYN:
+    if (xsk_get_uinput_last_event_type(xsk) == EV_SYN) {
+      return TRUE;
+    }
+    break;
+  case EV_KEY:
+    if (xsk_is_valid_key(event->code)) {
+      ud_is_key_pressed(xsk, event->code) = event->value ? TRUE : FALSE;
+    }
+    break;
+  }
+  xsk_set_uinput_last_event_type(xsk, event->type);
+
   gettimeofday(&event->time, NULL);
   debug_print("Write to uinput : type=%02x code=%d value=%d",
               event->type,
@@ -107,12 +136,9 @@ static gint _open_uinput_device()
   return fd;
 }
 
-static gboolean _create_uinput_device(XSetKeys *xsk, Device *device)
+static gboolean _write_user_dev(Device *device)
 {
   struct uinput_user_dev user_dev = { { 0 } };
-  uint8_t ev_bits[KD_EV_BITS_LENGTH] = { 0 };
-  uint8_t key_bits[KD_KEY_BITS_LENGTH] = { 0 };
-  gint index = 0;
 
   user_dev.id.bustype = BUS_VIRTUAL;
   strcpy(user_dev.name, "x-set-keys");
@@ -123,6 +149,13 @@ static gboolean _create_uinput_device(XSetKeys *xsk, Device *device)
     print_error("Failed to write uinput user device");
     return FALSE;
   }
+  return TRUE;
+}
+
+static gboolean _set_evbits(Device *device, XSetKeys *xsk)
+{
+  guint8 ev_bits[KD_EV_BITS_LENGTH] = { 0 };
+  gint index;
 
   if (!kd_get_ev_bits(xsk, ev_bits)) {
     print_error("Failed to get ev bits from keyboard device");
@@ -137,6 +170,13 @@ static gboolean _create_uinput_device(XSetKeys *xsk, Device *device)
       debug_print("UI_SET_EVBIT : %02x", index);
     }
   }
+  return TRUE;
+}
+
+static gboolean _set_keybits(Device *device, XSetKeys *xsk)
+{
+  guint8 key_bits[KD_KEY_BITS_LENGTH] = { 0 };
+  gint index;
 
   if (!kd_get_key_bits(xsk, key_bits)) {
     print_error("Failed to get key bits from keyboard device");
@@ -151,15 +191,10 @@ static gboolean _create_uinput_device(XSetKeys *xsk, Device *device)
       debug_print("UI_SET_KEYBIT : %d", index);
     }
   }
-
-  if (ioctl(device_get_fd(device), UI_DEV_CREATE) < 0) {
-    print_error("Failed to create uinput device");
-    return FALSE;
-  }
   return TRUE;
 }
 
-static gboolean _handle_event(gpointer user_data)
+static gboolean _handle_input(gpointer user_data)
 {
   XSetKeys *xsk;
   Device *device;
