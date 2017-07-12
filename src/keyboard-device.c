@@ -231,6 +231,9 @@ static gboolean _handle_input(gpointer user_data)
       switch (event.value) {
       case 0:
         kd_is_key_pressed(xsk, event.code) = FALSE;
+        if (!ud_is_key_pressed(xsk, event.code)) {
+          return TRUE;
+        }
         break;
       case 1:
         kd_is_key_pressed(xsk, event.code) = TRUE;
