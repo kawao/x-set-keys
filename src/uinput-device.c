@@ -28,12 +28,12 @@
 #include "keyboard-device.h"
 
 static gint _open_uinput_device();
-static gboolean _create_uinput_device(XSetKeys *xsk, gint fd);
-static gboolean _write(gint fd, gconstpointer buffer, gsize length);
+static gboolean _create_uinput_device(XSetKeys *xsk, Device *device);
 static gboolean _handle_event(gpointer user_data);
 
 Device *ud_initialize(XSetKeys *xsk)
 {
+  Device *device;
   gint fd = _open_uinput_device();
 
   if (fd < 0) {
@@ -41,11 +41,12 @@ Device *ud_initialize(XSetKeys *xsk)
                " Maybe uinput module is not loaded");
     return NULL;
   }
-  if (!_create_uinput_device(xsk, fd)) {
-    close(fd);
+  device = device_initialize(fd, "uinput device", _handle_event, xsk);
+  if (!_create_uinput_device(xsk, device)) {
+    device_finalize(device);
     return NULL;
   }
-  return device_initialize(fd, "uinput device", _handle_event, xsk);
+  return device;
 }
 
 void ud_finalize(XSetKeys *xsk)
@@ -106,7 +107,7 @@ static gint _open_uinput_device()
   return fd;
 }
 
-static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
+static gboolean _create_uinput_device(XSetKeys *xsk, Device *device)
 {
   struct uinput_user_dev user_dev = { { 0 } };
   uint8_t ev_bits[KD_EV_BITS_LENGTH] = { 0 };
@@ -118,7 +119,7 @@ static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
   user_dev.id.vendor = 1;
   user_dev.id.product = 1;
   user_dev.id.version = 1;
-  if (!_write(fd, &user_dev, sizeof (user_dev))) {
+  if (!device_write(device, &user_dev, sizeof (user_dev))) {
     print_error("Failed to write uinput user device");
     return FALSE;
   }
@@ -129,7 +130,7 @@ static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
   }
   for (index = 0; index < EV_CNT; index++) {
     if (kd_test_bit(ev_bits, index)) {
-      if (ioctl(fd, UI_SET_EVBIT, index) < 0) {
+      if (ioctl(device_get_fd(device), UI_SET_EVBIT, index) < 0) {
         print_error("Failed to set ev bit %02x to uinput device", index);
         return FALSE;
       }
@@ -143,7 +144,7 @@ static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
   }
   for (index = 0; index < KEY_CNT; index++) {
     if (kd_test_bit(key_bits, index)) {
-      if (ioctl(fd, UI_SET_KEYBIT, index) < 0) {
+      if (ioctl(device_get_fd(device), UI_SET_KEYBIT, index) < 0) {
         print_error("Failed to set key bit %d to uinput device", index);
         return FALSE;
       }
@@ -151,27 +152,9 @@ static gboolean _create_uinput_device(XSetKeys *xsk, gint fd)
     }
   }
 
-  if (ioctl(fd, UI_DEV_CREATE) < 0) {
+  if (ioctl(device_get_fd(device), UI_DEV_CREATE) < 0) {
     print_error("Failed to create uinput device");
     return FALSE;
-  }
-  return TRUE;
-}
-
-static gboolean _write(gint fd, gconstpointer buffer, gsize length)
-{
-  gssize rest = length;
-
-  while (rest > 0) {
-    gssize written = write(fd, buffer, rest);
-    if (written < 0) {
-      if (errno == EINTR) {
-        continue;
-      }
-      return FALSE;
-    }
-    rest -= written;
-    buffer += written;
   }
   return TRUE;
 }
