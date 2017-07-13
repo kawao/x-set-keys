@@ -21,12 +21,9 @@
 #include "action.h"
 #include "keyboard-device.h"
 #include "uinput-device.h"
-#include "key-combination.h"
 
 #define _reset_current_actions(xsk)                 \
   ((xsk)->current_actions = (xsk)->root_actions)
-
-static Action *_lookup_action(XSetKeys *xsk, KeyCode key_code);
 
 gboolean xsk_initialize(XSetKeys *xsk)
 {
@@ -78,12 +75,12 @@ gboolean xsk_is_disabled(XSetKeys *xsk)
 
 XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
 {
-  Action *action;
+  const Action *action;
 
   if (xsk_is_disabled(xsk)) {
     return XSK_PASSING_BY;
   }
-  action = _lookup_action(xsk, key_code);
+  action = action_lookup(xsk, key_code);
   if (action) {
     _reset_current_actions(xsk);
     return action->run(xsk, action->data) ? XSK_INTERCEPTED : XSK_ERROR;
@@ -101,14 +98,14 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
                                 KeyCode key_code,
                                 gint seconds_since_pressed)
 {
-  Action *action;
+  const Action *action;
   XskResult result;
 
   if (ud_is_key_pressed(xsk, key_code)) {
     if (xsk_is_disabled(xsk)) {
       return XSK_PASSING_BY;
     }
-    action = _lookup_action(xsk, key_code);
+    action = action_lookup(xsk, key_code);
     if (!action) {
       return XSK_PASSING_BY;
     }
@@ -130,13 +127,4 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
     return result;
   }
   return ud_send_key_event(xsk, key_code, TRUE) ? XSK_INTERCEPTED : XSK_ERROR;
-}
-
-static Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
-{
-  guint modifiers = ki_get_modifiers(&xsk->key_information,
-                                     xsk->keyboard_kaymap);
-  KeyCombination kc = kc_new(key_code, modifiers);
-
-  return action_list_lookup(xsk->current_actions, &kc);
 }

@@ -23,17 +23,22 @@
 #include "x-set-keys.h"
 
 typedef struct _Action {
-  gboolean (*run)(XSetKeys *xsk, gpointer data);
+  gboolean (*run)(XSetKeys *xsk, gconstpointer data);
   void (*free_data)(gpointer data);
   gpointer data;
 } Action;
 
-void action_free(gpointer action);
-gint action_compare_kc(gconstpointer a, gconstpointer b, gpointer user_data);
+const Action *action_lookup(XSetKeys *xsk, KeyCode key_code);
 
-#define action_list_new()                                       \
-  g_tree_new_full(action_compare_kc, NULL, g_free, action_free)
+void action_free(gpointer action);
+gint action_compare_key_combination(gconstpointer a,
+                                    gconstpointer b,
+                                    gpointer user_data);
+
+#define action_list_new()                                               \
+  g_tree_new_full(action_compare_key_combination, NULL, g_free, action_free)
 #define action_list_free(actions) g_tree_destroy(actions)
-#define action_list_lookup(actions, kc) g_tree_lookup((actions), (kc))
+#define action_list_lookup(actions, key_code)   \
+  g_tree_lookup((actions), (key_code))
 
 #endif /* _ACTION_H */

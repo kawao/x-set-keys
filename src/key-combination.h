@@ -30,10 +30,6 @@ typedef struct _KeyCombination {
   guint modifiers;
 } KeyCombination;
 
-#define kc_new(key_code, modifiers) { (key_code), (modifiers) }
-#define kc_assign(kc, code, mods)                   \
-  (kc)->key_code = (code), (kc)->modifiers = (mods)
-
 #define kc_serialize(kc) ((kc)->key_code | ((kc)->modifiers << 16))
 
 #endif /* _KEY_COMBINATION_H */

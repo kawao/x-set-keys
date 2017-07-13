@@ -23,13 +23,45 @@
 #include <X11/Xlib.h>
 #include <glib.h>
 
+#include "key-combination.h"
+
+typedef enum _KI_Modifier {
+#define KI_MODIFIER_UNKNOWN -1
+  KI_MODIFIER_ALT = 0,
+  KI_MODIFIER_CONTROL = 1,
+  KI_MODIFIER_HYPER = 2,
+  KI_MODIFIER_META = 3,
+  KI_MODIFIER_SHIFT = 4,
+  KI_MODIFIER_SUPER = 5,
+#define KI_NUM_MODIFIER (KI_MODIFIER_SUPER+1)
+} KI_Modifier;
+
+typedef GArray KI_KeyCodeArray;
+
+typedef GTree KI_KeyCodeSet;
+
 typedef struct _KeyInformation {
+  KI_KeyCodeArray *modifier_keys[KI_NUM_MODIFIER];
+  KI_KeyCodeSet *all_modifier_keys;
+  KI_KeyCodeSet *cursor_keys;
 } KeyInformation;
 
-void ki_initialize(Display *display, KeyInformation *ki);
-void ki_finalize(KeyInformation *ki);
+void ki_initialize(Display *display, KeyInformation *key_info);
+void ki_finalize(KeyInformation *key_info);
 
-gboolean ki_is_modifier(const KeyInformation *ki, KeyCode key_code);
-guint ki_get_modifiers(const KeyInformation *ki, const guchar kaymap[]);
+void ki_get_key_combination(const KeyInformation *key_info,
+               KeyCode key_code,
+               const guchar kaymap[],
+               KeyCombination *result);
+gboolean ki_get_key_combination_from_string(Display *display,
+                                            const KeyInformation *key_info,
+                                            const char *string,
+                                            KeyCombination *result);
+
+#define ki_is_modifier(key_info, key_code)            \
+  g_tree_lookup((key_info)->all_modifier_keys, &(key_code))
+
+#define ki_is_corsor(key_info, key_code)                \
+  g_tree_lookup((key_info)->cursor_keys, &(key_code))
 
 #endif /* _KEY_INFORMATION_H */

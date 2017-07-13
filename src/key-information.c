@@ -19,20 +19,25 @@
 
 #include "key-information.h"
 
-void ki_initialize(Display *display, KeyInformation *ki)
+void ki_initialize(Display *display, KeyInformation *key_info)
 {
 }
 
-void ki_finalize(KeyInformation *ki)
+void ki_finalize(KeyInformation *key_info)
 {
 }
 
-gboolean ki_is_modifier(const KeyInformation *ki, KeyCode key_code)
+void ki_get_key_combination(const KeyInformation *key_info,
+               KeyCode key_code,
+               const guchar kaymap[],
+               KeyCombination *result)
+{
+}
+
+gboolean ki_get_key_combination_from_string(Display *display,
+                                            const KeyInformation *key_info,
+                                            const char *string,
+                                            KeyCombination *result)
 {
   return FALSE;
-}
-
-guint ki_get_modifiers(const KeyInformation *ki, const guchar kaymap[])
-{
-  return 0;
 }

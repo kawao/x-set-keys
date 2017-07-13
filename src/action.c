@@ -20,6 +20,17 @@
 #include "action.h"
 #include "key-combination.h"
 
+const Action *action_lookup(XSetKeys *xsk, KeyCode key_code)
+{
+  KeyCombination kc;
+
+  ki_get_key_combination(xsk_get_key_information(xsk),
+                         key_code,
+                         xsk_get_keyboard_keymap(xsk),
+                         &kc);
+  return action_list_lookup(xsk_get_current_actions(xsk), &kc);
+}
+
 void action_free(gpointer action_)
 {
   Action *action = action_;
@@ -27,7 +38,9 @@ void action_free(gpointer action_)
   g_free(action);
 }
 
-gint action_compare_kc(gconstpointer a, gconstpointer b, gpointer user_data)
+gint action_compare_key_combination(gconstpointer a,
+                                    gconstpointer b,
+                                    gpointer user_data)
 {
   const KeyCombination *kc1 = a;
   const KeyCombination *kc2 = b;

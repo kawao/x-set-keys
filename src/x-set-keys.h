@@ -57,6 +57,9 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
 
 #define xsk_is_valid_key(key) ((key) > 0 && (key) < G_MAXUINT8)
 
+#define xsk_get_key_information(xsk) (&(xsk)->key_information)
+#define xsk_get_current_actions(xsk) ((xsk)->current_actions)
+
 #define xsk_get_keyboard_device(xsk) ((xsk)->keyboard_device)
 #define xsk_get_uinput_device(xsk) ((xsk)->uinput_device)
 
