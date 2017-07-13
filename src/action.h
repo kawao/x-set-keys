@@ -24,7 +24,16 @@
 
 typedef struct _Action {
   gboolean (*run)(XSetKeys *xsk, gpointer data);
+  void (*free_data)(gpointer data);
   gpointer data;
 } Action;
+
+void action_free(gpointer action);
+gint action_compare_kc(gconstpointer a, gconstpointer b, gpointer user_data);
+
+#define action_list_new()                                       \
+  g_tree_new_full(action_compare_kc, NULL, g_free, action_free)
+#define action_list_free(actions) g_tree_destroy(actions)
+#define action_list_lookup(actions, kc) g_tree_lookup((actions), (kc))
 
 #endif /* _ACTION_H */

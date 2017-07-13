@@ -17,22 +17,23 @@
  *
  ***************************************************************************/
 
+#ifndef _KEY_COMBINATION_H
+#define _KEY_COMBINATION_H
+
+#include <X11/Xlib.h>
+#include <glib.h>
+
 #include "key-information.h"
 
-void ki_initialize(Display *display, KeyInformation *ki)
-{
-}
+typedef struct _KeyCombination {
+  KeyCode key_code;
+  guint modifiers;
+} KeyCombination;
 
-void ki_finalize(KeyInformation *ki)
-{
-}
+#define kc_new(key_code, modifiers) { (key_code), (modifiers) }
+#define kc_assign(kc, code, mods)                   \
+  (kc)->key_code = (code), (kc)->modifiers = (mods)
 
-gboolean ki_is_modifier(const KeyInformation *ki, KeyCode key_code)
-{
-  return FALSE;
-}
+#define kc_serialize(kc) ((kc)->key_code | ((kc)->modifiers << 16))
 
-guint ki_get_modifiers(const KeyInformation *ki, const guchar kaymap[])
-{
-  return 0;
-}
+#endif /* _KEY_COMBINATION_H */

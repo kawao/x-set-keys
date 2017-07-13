@@ -21,6 +21,7 @@
 #include "action.h"
 #include "keyboard-device.h"
 #include "uinput-device.h"
+#include "key-combination.h"
 
 #define _reset_current_actions(xsk)                 \
   ((xsk)->current_actions = (xsk)->root_actions)
@@ -29,6 +30,13 @@ static Action *_lookup_action(XSetKeys *xsk, KeyCode key_code);
 
 gboolean xsk_initialize(XSetKeys *xsk)
 {
+  xsk->display = XOpenDisplay(NULL);
+  if (!xsk->display) {
+    g_critical("Could not create X11 display");
+    return FALSE;
+  }
+  ki_initialize(xsk->display, &xsk->key_information);
+  xsk->root_actions = action_list_new();
   return TRUE;
 }
 
@@ -53,6 +61,13 @@ void xsk_finalize(XSetKeys *xsk)
   }
   if (xsk->keyboard_device) {
     kd_finalize(xsk);
+  }
+  if (xsk->root_actions) {
+    action_list_free(xsk->root_actions);
+  }
+  if (xsk->display) {
+    ki_finalize(&xsk->key_information);
+    XCloseDisplay(xsk->display);
   }
 }
 
@@ -119,5 +134,9 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
 
 static Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
 {
-  return NULL;
+  guint modifiers = ki_get_modifiers(&xsk->key_information,
+                                     xsk->keyboard_kaymap);
+  KeyCombination kc = kc_new(key_code, modifiers);
+
+  return action_list_lookup(xsk->current_actions, &kc);
 }

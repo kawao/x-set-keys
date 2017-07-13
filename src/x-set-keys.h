@@ -29,8 +29,8 @@
 typedef struct _XSetKeys {
   Display *display;
   KeyInformation key_information;
-  gpointer *root_actions;
-  gpointer *current_actions;
+  gpointer root_actions;
+  gpointer current_actions;
   Device *keyboard_device;
   Device *uinput_device;
   guchar keyboard_kaymap[G_MAXUINT8];

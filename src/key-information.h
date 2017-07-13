@@ -26,6 +26,10 @@
 typedef struct _KeyInformation {
 } KeyInformation;
 
+void ki_initialize(Display *display, KeyInformation *ki);
+void ki_finalize(KeyInformation *ki);
+
 gboolean ki_is_modifier(const KeyInformation *ki, KeyCode key_code);
+guint ki_get_modifiers(const KeyInformation *ki, const guchar kaymap[]);
 
 #endif /* _KEY_INFORMATION_H */

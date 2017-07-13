@@ -17,22 +17,20 @@
  *
  ***************************************************************************/
 
-#include "key-information.h"
+#include "action.h"
+#include "key-combination.h"
 
-void ki_initialize(Display *display, KeyInformation *ki)
+void action_free(gpointer action_)
 {
+  Action *action = action_;
+  action->free_data(action->data);
+  g_free(action);
 }
 
-void ki_finalize(KeyInformation *ki)
+gint action_compare_kc(gconstpointer a, gconstpointer b, gpointer user_data)
 {
-}
+  const KeyCombination *kc1 = a;
+  const KeyCombination *kc2 = b;
 
-gboolean ki_is_modifier(const KeyInformation *ki, KeyCode key_code)
-{
-  return FALSE;
-}
-
-guint ki_get_modifiers(const KeyInformation *ki, const guchar kaymap[])
-{
-  return 0;
+  return kc_serialize(kc1) - kc_serialize(kc2);
 }
