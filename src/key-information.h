@@ -40,6 +40,12 @@ typedef GArray KI_KeyCodeArray;
 
 typedef GTree KI_KeyCodeSet;
 
+#define ki_key_code_set_new()                               \
+  g_tree_new_full(ki_compare_key_code, NULL, g_free, NULL)
+#define ki_key_code_set_free(set) g_tree_destroy(set)
+#define ki_key_code_set_contains(set, key_code) \
+  g_tree_lookup((set), &(key_code))
+
 typedef struct _KeyInformation {
   KI_KeyCodeArray *modifier_keys[KI_NUM_MODIFIER];
   KI_KeyCodeSet *all_modifier_keys;
@@ -58,10 +64,12 @@ gboolean ki_get_key_combination_from_string(Display *display,
                                             const char *string,
                                             KeyCombination *result);
 
-#define ki_is_modifier(key_info, key_code)            \
-  g_tree_lookup((key_info)->all_modifier_keys, &(key_code))
+#define ki_is_modifier(key_info, key_code)                              \
+  ki_key_code_set_contains((key_info)->all_modifier_keys, (key_code))
 
-#define ki_is_corsor(key_info, key_code)                \
-  g_tree_lookup((key_info)->cursor_keys, &(key_code))
+#define ki_is_corsor(key_info, key_code)                            \
+  ki_key_code_set_contains((key_info)->cursor_keys, (key_code))
+
+gint ki_compare_key_code(gconstpointer a, gconstpointer b, gpointer user_data);
 
 #endif /* _KEY_INFORMATION_H */

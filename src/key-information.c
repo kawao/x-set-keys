@@ -41,3 +41,11 @@ gboolean ki_get_key_combination_from_string(Display *display,
 {
   return FALSE;
 }
+
+gint ki_compare_key_code(gconstpointer a, gconstpointer b, gpointer user_data)
+{
+  const KeyCode *kc1 = a;
+  const KeyCode *kc2 = b;
+
+  return *kc1 - *kc2;
+}
