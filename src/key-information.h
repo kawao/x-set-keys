@@ -59,10 +59,10 @@ void ki_get_key_combination(const KeyInformation *key_info,
                KeyCode key_code,
                const guchar kaymap[],
                KeyCombination *result);
-gboolean ki_get_key_combination_from_string(Display *display,
-                                            const KeyInformation *key_info,
-                                            const char *string,
-                                            KeyCombination *result);
+gboolean ki_string_to_key_combination(Display *display,
+                                      const KeyInformation *key_info,
+                                      const char *string,
+                                      KeyCombination *result);
 
 #define ki_is_modifier(key_info, key_code)                              \
   ki_key_code_set_contains((key_info)->all_modifier_keys, (key_code))

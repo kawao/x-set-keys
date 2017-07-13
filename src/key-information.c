@@ -34,10 +34,10 @@ void ki_get_key_combination(const KeyInformation *key_info,
 {
 }
 
-gboolean ki_get_key_combination_from_string(Display *display,
-                                            const KeyInformation *key_info,
-                                            const char *string,
-                                            KeyCombination *result)
+gboolean ki_string_to_key_combination(Display *display,
+                                      const KeyInformation *key_info,
+                                      const char *string,
+                                      KeyCombination *result)
 {
   return FALSE;
 }
