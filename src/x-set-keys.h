@@ -23,10 +23,14 @@
 #include <X11/Xlib.h>
 #include <glib.h>
 
+#include "key-information.h"
 #include "device.h"
 
 typedef struct _XSetKeys {
   Display *display;
+  KeyInformation key_information;
+  gpointer *root_actions;
+  gpointer *current_actions;
   Device *keyboard_device;
   Device *uinput_device;
   guchar keyboard_kaymap[G_MAXUINT8];
@@ -35,9 +39,23 @@ typedef struct _XSetKeys {
   guint16 uinput_last_event_type;
 } XSetKeys;
 
+typedef enum _XskResult {
+  XSK_PASSING_BY,
+  XSK_INTERCEPTED,
+  XSK_ERROR
+} XskResult;
+
 gboolean xsk_initialize(XSetKeys *xsk);
 gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath);
 void xsk_finalize(XSetKeys *xsk);
+
+gboolean xsk_is_disabled(XSetKeys *xsk);
+XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code);
+XskResult xsk_handle_key_repeat(XSetKeys *xsk,
+                                KeyCode key_code,
+                                gint seconds_since_pressed);
+
+#define xsk_is_valid_key(key) ((key) > 0 && (key) < G_MAXUINT8)
 
 #define xsk_get_keyboard_device(xsk) ((xsk)->keyboard_device)
 #define xsk_get_uinput_device(xsk) ((xsk)->uinput_device)
@@ -52,8 +70,5 @@ void xsk_finalize(XSetKeys *xsk);
 #define xsk_get_uinput_last_event_type(xsk) ((xsk)->uinput_last_event_type)
 #define xsk_set_uinput_last_event_type(xsk, type) \
   ((xsk)->uinput_last_event_type = (type))
-
-#define xsk_is_valid_key(key) ((key) > 0 && (key) < G_MAXUINT8)
-
 
 #endif /* _X_SET_KEYS_H */

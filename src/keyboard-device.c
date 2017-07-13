@@ -27,6 +27,9 @@
 #include "keyboard-device.h"
 #include "uinput-device.h"
 
+#define _elapsed_seconds(t1, t2) \
+  ((t2).tv_sec - (t1).tv_sec - ((t2).tv_usec < (t1).tv_usec ? 1 : 0))
+
 static gint _open_device_file(const gchar *device_filepath);
 static gint _find_keyboard();
 static gboolean _is_keyboard(gint fd);
@@ -34,6 +37,7 @@ static gboolean _initialize_keys(Device *device);
 static gboolean _get_ev_bits(gint fd, guint8 ev_bits[]);
 static gboolean _get_key_bits(gint fd, guint8 key_bits[]);
 static gboolean _handle_input(gpointer user_data);
+static gboolean _handle_event(XSetKeys *xsk, struct input_event *event);
 
 Device *kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
 {
@@ -220,31 +224,55 @@ static gboolean _handle_input(gpointer user_data)
               event.type,
               event.code,
               event.value);
-  switch (event.type) {
+  return _handle_event(xsk, &event);
+}
+
+static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
+{
+  gint seconds_since_pressed;
+
+  switch (event->type) {
   case EV_MSC:
-    if (event.code == MSC_SCAN) {
+    if (event->code == MSC_SCAN) {
       return TRUE;
     }
     break;
   case EV_KEY:
-    if (xsk_is_valid_key(event.code)) {
-      switch (event.value) {
-      case 0:
-        kd_is_key_pressed(xsk, event.code) = FALSE;
-        if (!ud_is_key_pressed(xsk, event.code)) {
-          return TRUE;
-        }
+    if (!xsk_is_valid_key(event->code)) {
+      break;
+    }
+    switch (event->value) {
+    case 0:
+      kd_is_key_pressed(xsk, event->code) = FALSE;
+      if (!ud_is_key_pressed(xsk, event->code)) {
+        return TRUE;
+      }
+      break;
+    case 1:
+      kd_is_key_pressed(xsk, event->code) = TRUE;
+      xsk_set_key_press_start_time(xsk, event->time);
+      switch (xsk_handle_key_press(xsk, event->code)) {
+      case XSK_INTERCEPTED:
+        return TRUE;
+      case XSK_ERROR:
+        return FALSE;
+      default:
         break;
-      case 1:
-        kd_is_key_pressed(xsk, event.code) = TRUE;
-        xsk_set_key_press_start_time(xsk, event.time);
-        break;
+      }
+      break;
+    default:
+      seconds_since_pressed =
+        _elapsed_seconds(xsk_get_key_press_start_time(xsk), event->time);
+      switch (xsk_handle_key_repeat(xsk, event->code, seconds_since_pressed)) {
+      case XSK_INTERCEPTED:
+        return TRUE;
+      case XSK_ERROR:
+        return FALSE;
       default:
         break;
       }
     }
     break;
   }
-
-  return ud_send_event(xsk, &event);
+  return ud_send_event(xsk, event);
 }

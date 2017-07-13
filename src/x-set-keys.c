@@ -18,8 +18,14 @@
  ***************************************************************************/
 
 #include "x-set-keys.h"
+#include "action.h"
 #include "keyboard-device.h"
 #include "uinput-device.h"
+
+#define _reset_current_actions(xsk)                 \
+  ((xsk)->current_actions = (xsk)->root_actions)
+
+static Action *_lookup_action(XSetKeys *xsk, KeyCode key_code);
 
 gboolean xsk_initialize(XSetKeys *xsk)
 {
@@ -36,7 +42,7 @@ gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
   if (!xsk->uinput_device) {
     return FALSE;
   }
-
+  _reset_current_actions(xsk);
   return TRUE;
 }
 
@@ -48,4 +54,70 @@ void xsk_finalize(XSetKeys *xsk)
   if (xsk->keyboard_device) {
     kd_finalize(xsk);
   }
+}
+
+gboolean xsk_is_disabled(XSetKeys *xsk)
+{
+  return FALSE;
+}
+
+XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
+{
+  Action *action;
+
+  if (xsk_is_disabled(xsk)) {
+    return XSK_PASSING_BY;
+  }
+  action = _lookup_action(xsk, key_code);
+  if (action) {
+    _reset_current_actions(xsk);
+    return action->run(xsk, action->data) ? XSK_INTERCEPTED : XSK_ERROR;
+  }
+  if (!ki_is_modifier(&xsk->key_information, key_code)) {
+    if (xsk->current_actions != xsk->root_actions) {
+      _reset_current_actions(xsk);
+      g_warning("Key sequence canceled");
+    }
+  }
+  return XSK_PASSING_BY;
+}
+
+XskResult xsk_handle_key_repeat(XSetKeys *xsk,
+                                KeyCode key_code,
+                                gint seconds_since_pressed)
+{
+  Action *action;
+  XskResult result;
+
+  if (ud_is_key_pressed(xsk, key_code)) {
+    if (xsk_is_disabled(xsk)) {
+      return XSK_PASSING_BY;
+    }
+    action = _lookup_action(xsk, key_code);
+    if (!action) {
+      return XSK_PASSING_BY;
+    }
+    if (!seconds_since_pressed) {
+      return XSK_INTERCEPTED;
+    }
+    if (!ud_send_key_event(xsk, key_code, FALSE)) {
+      return XSK_ERROR;
+    }
+    _reset_current_actions(xsk);
+    return action->run(xsk, action->data) ? XSK_INTERCEPTED : XSK_ERROR;
+  }
+
+  if (!seconds_since_pressed) {
+    return XSK_INTERCEPTED;
+  }
+  result = xsk_handle_key_press(xsk, key_code);
+  if (result != XSK_PASSING_BY) {
+    return result;
+  }
+  return ud_send_key_event(xsk, key_code, TRUE) ? XSK_INTERCEPTED : XSK_ERROR;
+}
+
+static Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
+{
+  return NULL;
 }
