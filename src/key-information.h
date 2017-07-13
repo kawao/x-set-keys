@@ -43,6 +43,8 @@ typedef GTree KI_KeyCodeSet;
 #define ki_key_code_set_new()                               \
   g_tree_new_full(ki_compare_key_code, NULL, g_free, NULL)
 #define ki_key_code_set_free(set) g_tree_destroy(set)
+#define ki_key_code_set_insert(set, key_code)                   \
+  g_tree_insert((set), g_memdup(&(key_code), sizeof (KeyCode)), (gpointer)TRUE)
 #define ki_key_code_set_contains(set, key_code) \
   g_tree_lookup((set), &(key_code))
 

@@ -37,8 +37,14 @@ gint action_compare_key_combination(gconstpointer a,
 
 #define action_list_new()                                               \
   g_tree_new_full(action_compare_key_combination, NULL, g_free, action_free)
-#define action_list_free(actions) g_tree_destroy(actions)
-#define action_list_lookup(actions, key_code)   \
-  g_tree_lookup((actions), (key_code))
+#define action_list_free(list) g_tree_destroy(list)
+#define action_list_insert(list, key_combination, action)               \
+  g_tree_insert((list),                                                 \
+                g_memdup((key_combination), sizeof (KeyCombination)),   \
+                (action))
+#define action_list_lookup(list, key_cmbination)    \
+  g_tree_lookup((list), (key_combination))
+#define action_list_foreach(list, func, user_data)  \
+  g_tree_foreach((list), (func), (user_data))
 
 #endif /* _ACTION_H */
