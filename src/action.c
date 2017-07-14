@@ -22,12 +22,9 @@
 
 const Action *action_lookup(XSetKeys *xsk, KeyCode key_code)
 {
-  KeyCombination kc;
-
-  ki_get_key_combination(xsk_get_key_information(xsk),
-                         key_code,
-                         xsk_get_keyboard_keymap(xsk),
-                         &kc);
+  KeyCombination kc = ki_new_key_combination(xsk_get_key_information(xsk),
+                                             key_code,
+                                             xsk_get_keyboard_keymap(xsk));
   return action_list_lookup(xsk_get_current_actions(xsk), &kc);
 }
 
@@ -42,8 +39,5 @@ gint action_compare_key_combination(gconstpointer a,
                                     gconstpointer b,
                                     gpointer user_data)
 {
-  const KeyCombination *kc1 = a;
-  const KeyCombination *kc2 = b;
-
-  return kc_serialize(kc1) - kc_serialize(kc2);
+  return kc_compare((const KeyCombination *)a, (const KeyCombination *)b);
 }

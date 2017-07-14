@@ -25,17 +25,6 @@
 
 #include "key-combination.h"
 
-typedef enum _KI_Modifier {
-#define KI_MODIFIER_UNKNOWN -1
-  KI_MODIFIER_ALT = 0,
-  KI_MODIFIER_CONTROL = 1,
-  KI_MODIFIER_HYPER = 2,
-  KI_MODIFIER_META = 3,
-  KI_MODIFIER_SHIFT = 4,
-  KI_MODIFIER_SUPER = 5,
-#define KI_NUM_MODIFIER (KI_MODIFIER_SUPER+1)
-} KI_Modifier;
-
 typedef GArray KI_KeyCodeArray;
 
 typedef GTree KI_KeyCodeSet;
@@ -49,7 +38,7 @@ typedef GTree KI_KeyCodeSet;
   g_tree_lookup((set), &(key_code))
 
 typedef struct _KeyInformation {
-  KI_KeyCodeArray *modifier_keys[KI_NUM_MODIFIER];
+  KI_KeyCodeArray *modifier_keys[KC_NUM_MODIFIER];
   KI_KeyCodeSet *all_modifier_keys;
   KI_KeyCodeSet *cursor_keys;
 } KeyInformation;
@@ -57,19 +46,17 @@ typedef struct _KeyInformation {
 void ki_initialize(Display *display, KeyInformation *key_info);
 void ki_finalize(KeyInformation *key_info);
 
-void ki_get_key_combination(const KeyInformation *key_info,
-               KeyCode key_code,
-               const guchar kaymap[],
-               KeyCombination *result);
-gboolean ki_string_to_key_combination(Display *display,
-                                      const KeyInformation *key_info,
-                                      const char *string,
-                                      KeyCombination *result);
+KeyCombination ki_new_key_combination(const KeyInformation *key_info,
+                                      KeyCode key_code,
+                                      const guchar kaymap[]);
+KeyCombination ki_string_to_key_combination(Display *display,
+                                            const KeyInformation *key_info,
+                                            const char *string);
 
 #define ki_is_modifier(key_info, key_code)                              \
   ki_key_code_set_contains((key_info)->all_modifier_keys, (key_code))
 
-#define ki_is_corsor(key_info, key_code)                            \
+#define ki_is_corsor(key_info, key_code)                        \
   ki_key_code_set_contains((key_info)->cursor_keys, (key_code))
 
 gint ki_compare_key_code(gconstpointer a, gconstpointer b, gpointer user_data);

@@ -27,25 +27,23 @@ void ki_finalize(KeyInformation *key_info)
 {
 }
 
-void ki_get_key_combination(const KeyInformation *key_info,
-               KeyCode key_code,
-               const guchar kaymap[],
-               KeyCombination *result)
+KeyCombination ki_new_key_combination(const KeyInformation *key_info,
+                                      KeyCode key_code,
+                                      const guchar kaymap[])
 {
+  KeyCombination result = { 0 };
+  return result;
 }
 
-gboolean ki_string_to_key_combination(Display *display,
-                                      const KeyInformation *key_info,
-                                      const char *string,
-                                      KeyCombination *result)
+KeyCombination ki_string_to_key_combination(Display *display,
+                                            const KeyInformation *key_info,
+                                            const char *string)
 {
-  return FALSE;
+  KeyCombination result = { 0 };
+  return result;
 }
 
 gint ki_compare_key_code(gconstpointer a, gconstpointer b, gpointer user_data)
 {
-  const KeyCode *kc1 = a;
-  const KeyCode *kc2 = b;
-
-  return *kc1 - *kc2;
+  return *(const KeyCode *)a - *(const KeyCode *)b;
 }

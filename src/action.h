@@ -42,7 +42,7 @@ gint action_compare_key_combination(gconstpointer a,
   g_tree_insert((list),                                                 \
                 g_memdup((key_combination), sizeof (KeyCombination)),   \
                 (action))
-#define action_list_lookup(list, key_cmbination)    \
+#define action_list_lookup(list, key_combination)   \
   g_tree_lookup((list), (key_combination))
 #define action_list_foreach(list, func, user_data)  \
   g_tree_foreach((list), (func), (user_data))

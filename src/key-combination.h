@@ -25,11 +25,25 @@
 
 #include "key-information.h"
 
-typedef struct _KeyCombination {
-  KeyCode key_code;
-  guint modifiers;
+typedef union _KeyCombination {
+  guint16 i;
+  struct __KeyCombination {
+    guint8 key_code;
+    guint8 modifiers;
+  } s;
 } KeyCombination;
 
-#define kc_serialize(kc) ((kc)->key_code | ((kc)->modifiers << 16))
+typedef enum _KCModifier {
+#define KC_MODIFIER_UNKNOWN -1
+  KC_MODIFIER_ALT = 0,
+  KC_MODIFIER_CONTROL = 1,
+  KC_MODIFIER_HYPER = 2,
+  KC_MODIFIER_META = 3,
+  KC_MODIFIER_SHIFT = 4,
+  KC_MODIFIER_SUPER = 5,
+#define KC_NUM_MODIFIER (KC_MODIFIER_SUPER+1)
+} KCModifier;
+
+#define kc_compare(kc1, kc2) ((kc1)->i - (kc2)->i)
 
 #endif /* _KEY_COMBINATION_H */
