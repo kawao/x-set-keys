@@ -33,17 +33,6 @@ typedef union _KeyCombination {
   } s;
 } KeyCombination;
 
-typedef enum _KCModifier {
-#define KC_MODIFIER_UNKNOWN -1
-  KC_MODIFIER_ALT = 0,
-  KC_MODIFIER_CONTROL = 1,
-  KC_MODIFIER_HYPER = 2,
-  KC_MODIFIER_META = 3,
-  KC_MODIFIER_SHIFT = 4,
-  KC_MODIFIER_SUPER = 5,
-#define KC_NUM_MODIFIER (KC_MODIFIER_SUPER+1)
-} KCModifier;
-
 #define kc_compare(kc1, kc2) ((kc1)->i - (kc2)->i)
 
 #endif /* _KEY_COMBINATION_H */

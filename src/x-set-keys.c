@@ -25,6 +25,8 @@
 #define _reset_current_actions(xsk)                 \
   ((xsk)->current_actions = (xsk)->root_actions)
 
+const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code);
+
 gboolean xsk_initialize(XSetKeys *xsk)
 {
   xsk->display = XOpenDisplay(NULL);
@@ -80,7 +82,7 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
   if (xsk_is_disabled(xsk)) {
     return XSK_PASSING_BY;
   }
-  action = action_lookup(xsk, key_code);
+  action = _lookup_action(xsk, key_code);
   if (action) {
     _reset_current_actions(xsk);
     return action->run(xsk, action->data) ? XSK_INTERCEPTED : XSK_ERROR;
@@ -105,7 +107,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
     if (xsk_is_disabled(xsk)) {
       return XSK_PASSING_BY;
     }
-    action = action_lookup(xsk, key_code);
+    action = _lookup_action(xsk, key_code);
     if (!action) {
       return XSK_PASSING_BY;
     }
@@ -127,4 +129,14 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
     return result;
   }
   return ud_send_key_event(xsk, key_code, TRUE) ? XSK_INTERCEPTED : XSK_ERROR;
+}
+
+const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
+{
+  KeyCombination kc;
+
+  kc = ki_keymap_to_key_combination(xsk_get_key_information(xsk),
+                                    key_code,
+                                    xsk_get_keyboard_keymap(xsk));
+  return action_list_lookup(xsk_get_current_actions(xsk), &kc);
 }
