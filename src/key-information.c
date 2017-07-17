@@ -33,31 +33,27 @@ static const char *_modifier_names[] = {
 
 static void _initialize_modifier_info(Display *display,
                                       KeyInformation *key_info);
-static KI_KeyCodeArray *_new_modifier_keys(const XModifierKeymap *modmap,
-                                           gint row);
+static KIModifier _get_modifier_for_modmap_row(Display *display,
+                                               KeyInformation *key_info,
+                                               XModifierKeymap *modmap,
+                                               gint row);
 static KIModifier _get_modifier_for_key_code(Display *display,
                                              KeyCode key_code);
 static KIModifier _get_modifier_for_key_sym(KeySym key_sym);
+static void _set_modifier_info(KeyInformation *key_info,
+                               KIModifier modifier,
+                               XModifierKeymap *modmap,
+                               gint row);
+static void _initialize_cursor_info(Display *display, KeyInformation *key_info);
 
 void ki_initialize(Display *display, KeyInformation *key_info)
 {
-  key_info->all_modifier_keys = ki_key_code_set_new();
   _initialize_modifier_info(display, key_info);
-
-  key_info->cursor_keys = ki_key_code_set_new();
+  _initialize_cursor_info(display, key_info);
 }
 
 void ki_finalize(KeyInformation *key_info)
 {
-  gint index;
-
-  for (index = 0; index < KI_NUM_MODIFIER; index++) {
-    if (key_info->modifier_keys[index]) {
-      ki_key_code_array_free(key_info->modifier_keys[index]);
-    }
-  }
-  ki_key_code_set_free(key_info->all_modifier_keys);
-  ki_key_code_set_free(key_info->cursor_keys);
 }
 
 KeyCombination
@@ -77,110 +73,89 @@ KeyCombination ki_string_to_key_combination(Display *display,
   return result;
 }
 
-gint ki_compare_key_code(gconstpointer a, gconstpointer b, gpointer user_data)
+KeyCodeArray *ki_string_to_key_code_array(Display *display,
+                                          const KeyInformation *key_info,
+                                          const char *string)
 {
-  return *(const KeyCode *)a - *(const KeyCode *)b;
+  return NULL;
+}
+
+gboolean ki_contains_modifier(const KeyInformation *key_info,
+                              const KeyCodeArray *keys,
+                              KIModifier modifier)
+{
+  return FALSE;
 }
 
 static void _initialize_modifier_info(Display *display,
                                       KeyInformation *key_info)
 {
   gint row;
-  gint col;
   XModifierKeymap *modmap = XGetModifierMapping(display);
 
-  key_info->modifier_keys[KI_MODIFIER_SHIFT] = _new_modifier_keys(modmap, 0);
-  if (!key_info->modifier_keys[KI_MODIFIER_SHIFT]) {
-    g_critical("Key is not defined for modifier: %s",
-               _modifier_names[KI_MODIFIER_SHIFT]);
-  }
-  key_info->modifier_keys[KI_MODIFIER_CONTROL] = _new_modifier_keys(modmap, 2);
-  if (!key_info->modifier_keys[KI_MODIFIER_CONTROL]) {
-    g_critical("Key is not defined for modifier: %s",
-               _modifier_names[KI_MODIFIER_CONTROL]);
-  }
+  _set_modifier_info(key_info, KI_MODIFIER_SHIFT, modmap, 0);
+  _set_modifier_info(key_info, KI_MODIFIER_CONTROL, modmap, 2);
 
-  for (row = 0; row < 8; row++) {
-    for (col = 0; col < modmap->max_keypermod; col++) {
-      gint modifier_index;
-      KeyCode key_code = modmap->modifiermap[row * modmap->max_keypermod + col];
-      if (!key_code) {
-        continue;
-      }
-      ki_key_code_set_insert(key_info->all_modifier_keys, key_code);
-      if (row < 3) {
-        continue;
-      }
-
-      modifier_index = _get_modifier_for_key_code(display, key_code);
-      if (modifier_index == KI_MODIFIER_OTHER) {
-        continue;
-      }
-      if (key_info->modifier_keys[modifier_index]) {
-        g_warning("%s corresponds to multi modifiers. Ignore row=%d",
-                  _modifier_names[modifier_index],
-                  row);
-        continue;
-      }
-      key_info->modifier_keys[modifier_index] = _new_modifier_keys(modmap, row);
-      if (!key_info->modifier_keys[modifier_index]) {
-        g_critical("Key is not defined for modifier: %s",
-                   _modifier_names[modifier_index]);
-        continue;
-      }
-      debug_print("found modifier=%s row=%d",
-                  _modifier_names[modifier_index],
-                  row);
-      break;
-    }
+  for (row = 3; row < 8; row++) {
+    KIModifier modifier = _get_modifier_for_modmap_row(display,
+                                                       key_info,
+                                                       modmap,
+                                                       row);
+    _set_modifier_info(key_info, modifier, modmap, row);
   }
 
   XFreeModifiermap(modmap);
 }
 
-static KI_KeyCodeArray *_new_modifier_keys(const XModifierKeymap *modmap,
-                                           gint row)
+static KIModifier _get_modifier_for_modmap_row(Display *display,
+                                               KeyInformation *key_info,
+                                               XModifierKeymap *modmap,
+                                               gint row)
 {
-  KI_KeyCodeArray *result;
+  KIModifier modifier;
   gint col;
-
-  result = ki_key_code_array_new(modmap->max_keypermod);
 
   for (col = 0; col < modmap->max_keypermod; col++) {
     KeyCode key_code = modmap->modifiermap[row * modmap->max_keypermod + col];
-    if (key_code) {
-      ki_key_code_array_append(result, key_code);
+    if (!key_code) {
+      continue;
     }
+    modifier = _get_modifier_for_key_code(display, key_code);
+    if (modifier == KI_MODIFIER_OTHER) {
+      continue;
+    }
+    if (key_info->modifier_key_code[modifier]) {
+      g_warning("%s corresponds to multi modifiers, row=%d",
+                _modifier_names[modifier],
+                row);
+      continue;
+    }
+    return modifier;
   }
-
-  if (!ki_key_code_array_length(result)) {
-    ki_key_code_array_free(result);
-    return NULL;
-  }
-  return result;
+  return KI_MODIFIER_OTHER;
 }
 
 static KIModifier _get_modifier_for_key_code(Display *display, KeyCode key_code)
 {
-  gint modifier_index = KI_MODIFIER_OTHER;
+  KIModifier modifier = KI_MODIFIER_OTHER;
   KeySym *key_syms;
   gint num_key_sym;
-  gint sym_index;
+  gint index;
 
   key_syms = XGetKeyboardMapping(display, key_code, 1, &num_key_sym);
   if (!key_syms) {
-    return modifier_index;
+    return modifier;
   }
-  for (sym_index = 0; sym_index < num_key_sym; sym_index++) {
-    if (key_syms[sym_index] != NoSymbol) {
-      modifier_index = _get_modifier_for_key_sym(key_syms[sym_index]);
-      if (modifier_index != KI_MODIFIER_OTHER) {
+  for (index = 0; index < num_key_sym; index++) {
+    if (key_syms[index] != NoSymbol) {
+      modifier = _get_modifier_for_key_sym(key_syms[index]);
+      if (modifier != KI_MODIFIER_OTHER) {
         break;
       }
     }
   }
   XFree(key_syms);
-  return modifier_index;
+  return modifier;
 }
 
 static KIModifier _get_modifier_for_key_sym(KeySym key_sym)
@@ -200,4 +175,51 @@ static KIModifier _get_modifier_for_key_sym(KeySym key_sym)
     return KI_MODIFIER_SUPER;
   }
   return KI_MODIFIER_OTHER;
+}
+
+static void _set_modifier_info(KeyInformation *key_info,
+                               KIModifier modifier,
+                               XModifierKeymap *modmap,
+                               gint row)
+{
+  gint col;
+
+  for (col = 0; col < modmap->max_keypermod; col++) {
+    KeyCode key_code = modmap->modifiermap[row * modmap->max_keypermod + col];
+    if (!key_code) {
+      continue;
+    }
+    key_info->modifier_mask_or_key_kind[key_code] = (1 << modifier);
+    if (modifier != KI_MODIFIER_OTHER &&
+        !key_info->modifier_key_code[modifier]) {
+      key_info->modifier_key_code[modifier] = key_code;
+    }
+  }
+  debug_print("Set modifier=%s modmap-row=%d", _modifier_names[modifier], row);
+}
+
+static void _initialize_cursor_info(Display *display, KeyInformation *key_info)
+{
+  KeySym key_syms[] = {
+    XK_Home,
+    XK_Left,
+    XK_Up,
+    XK_Right,
+    XK_Down,
+    XK_Prior,
+    XK_Page_Up,
+    XK_Next,
+    XK_Page_Down,
+    XK_End,
+    XK_Begin,
+    NoSymbol
+  };
+  KeySym *pointer;
+
+  for (pointer = key_syms; *pointer != NoSymbol; pointer++) {
+    KeyCode key_code = XKeysymToKeycode(display, *pointer);
+    if (!key_code) {
+      key_info->modifier_mask_or_key_kind[key_code] = KI_KIND_CURSOR;
+    }
+  }
 }

@@ -37,31 +37,11 @@ typedef enum _KIModifier {
   KI_MODIFIER_OTHER = 6
 } KIModifier;
 
-typedef GArray KI_KeyCodeArray;
-
-#define ki_key_code_array_new(reserved_size)                            \
-  g_array_sized_new(FALSE, FALSE, sizeof (KeyCode), (reserved_size))
-#define ki_key_code_array_free(array) g_array_free((array), TRUE)
-#define ki_key_code_array_length(array) (array)->len
-#define ki_key_code_array_append(array, key_code)   \
-  g_array_append_val((array), (key_code))
-#define ki_key_code_array_get_at(array, index)  \
-  g_array_index((array), KeyCode, (index))
-
-typedef GTree KI_KeyCodeSet;
-
-#define ki_key_code_set_new()                               \
-  g_tree_new_full(ki_compare_key_code, NULL, g_free, NULL)
-#define ki_key_code_set_free(set) g_tree_destroy(set)
-#define ki_key_code_set_insert(set, key_code)                   \
-  g_tree_insert((set), g_memdup(&(key_code), sizeof (KeyCode)), (gpointer)TRUE)
-#define ki_key_code_set_contains(set, key_code) \
-  g_tree_lookup((set), &(key_code))
+#define KI_KIND_CURSOR ((1 << KI_MODIFIER_OTHER) + 1)
 
 typedef struct _KeyInformation {
-  KI_KeyCodeArray *modifier_keys[KI_NUM_MODIFIER];
-  KI_KeyCodeSet *all_modifier_keys;
-  KI_KeyCodeSet *cursor_keys;
+  KeyCode modifier_key_code[KI_NUM_MODIFIER];
+  guchar modifier_mask_or_key_kind[G_MAXUINT8];
 } KeyInformation;
 
 void ki_initialize(Display *display, KeyInformation *key_info);
@@ -76,12 +56,23 @@ KeyCombination ki_string_to_key_combination(Display *display,
                                             const KeyInformation *key_info,
                                             const char *string);
 
+KeyCodeArray *ki_string_to_key_code_array(Display *display,
+                                          const KeyInformation *key_info,
+                                          const char *string);
+
+gboolean ki_contains_modifier(const KeyInformation *key_info,
+                              const KeyCodeArray *keys,
+                              KIModifier modifier);
+
 #define ki_is_modifier(key_info, key_code)                              \
-  ki_key_code_set_contains((key_info)->all_modifier_keys, (key_code))
+  ((key_info)->modifier_mask_or_key_kind[key_code] &&                   \
+   (key_info)->modifier_mask_or_key_kind[key_code] <= (1 << KI_MODIFIER_OTHER))
 
-#define ki_is_corsor(key_info, key_code)                        \
-  ki_key_code_set_contains((key_info)->cursor_keys, (key_code))
+#define ki_is_regular_modifier(key_info, key_code)                      \
+  ((key_info)->modifier_mask_or_key_kind[key_code] &&                   \
+   (key_info)->modifier_mask_or_key_kind[key_code] < (1 << KI_MODIFIER_OTHER))
 
-gint ki_compare_key_code(gconstpointer a, gconstpointer b, gpointer user_data);
+#define ki_is_corsor(key_info, key_code)                                \
+  ((key_info)->modifier_mask_or_key_kind[key_code] == KI_KIND_CURSOR)
 
 #endif /* _KEY_INFORMATION_H */
