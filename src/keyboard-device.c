@@ -243,13 +243,10 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
     }
     switch (event->value) {
     case 0:
-      kd_is_key_pressed(xsk, event->code) = FALSE;
-      if (!ud_is_key_pressed(xsk, event->code)) {
-        return TRUE;
-      }
+      key_code_array_remove(xsk_get_keyboard_pressing_keys(xsk), event->code);
       break;
     case 1:
-      kd_is_key_pressed(xsk, event->code) = TRUE;
+      key_code_array_append(xsk_get_keyboard_pressing_keys(xsk), event->code);
       xsk_set_key_press_start_time(xsk, event->time);
       switch (xsk_handle_key_press(xsk, event->code)) {
       case XSK_INTERCEPTED:

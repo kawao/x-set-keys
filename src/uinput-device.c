@@ -107,7 +107,14 @@ gboolean ud_send_event(XSetKeys *xsk, struct input_event *event)
     break;
   case EV_KEY:
     if (xsk_is_valid_key(event->code)) {
-      ud_is_key_pressed(xsk, event->code) = event->value ? TRUE : FALSE;
+      switch (event->value) {
+      case 0:
+        key_code_array_remove(xsk_get_uinput_pressing_keys(xsk), event->code);
+        break;
+      case 1:
+        key_code_array_append(xsk_get_uinput_pressing_keys(xsk), event->code);
+        break;
+      }
     }
     break;
   }

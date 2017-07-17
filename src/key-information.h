@@ -24,9 +24,9 @@
 #include <glib.h>
 
 #include "key-combination.h"
+#include "key-code-array.h"
 
 typedef enum _KIModifier {
-#define KI_MODIFIER_UNKNOWN -1
   KI_MODIFIER_ALT = 0,
   KI_MODIFIER_CONTROL = 1,
   KI_MODIFIER_HYPER = 2,
@@ -34,6 +34,7 @@ typedef enum _KIModifier {
   KI_MODIFIER_SHIFT = 4,
   KI_MODIFIER_SUPER = 5,
 #define KI_NUM_MODIFIER (KI_MODIFIER_SUPER+1)
+  KI_MODIFIER_OTHER = 6
 } KIModifier;
 
 typedef GArray KI_KeyCodeArray;
@@ -66,9 +67,11 @@ typedef struct _KeyInformation {
 void ki_initialize(Display *display, KeyInformation *key_info);
 void ki_finalize(KeyInformation *key_info);
 
-KeyCombination ki_keymap_to_key_combination(const KeyInformation *key_info,
-                                            KeyCode key_code,
-                                            const guchar kaymap[]);
+KeyCombination
+ki_pressing_keys_to_key_combination(const KeyInformation *key_info,
+                                    KeyCode key_code,
+                                    const KeyCodeArray *pressing_keys);
+
 KeyCombination ki_string_to_key_combination(Display *display,
                                             const KeyInformation *key_info,
                                             const char *string);

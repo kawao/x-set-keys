@@ -17,25 +17,25 @@
  *
  ***************************************************************************/
 
-#ifndef _KEYBOARD_DEVICE_H
-#define _KEYBOARD_DEVICE_H
+#ifndef _KEY_CODE_ARRAY_H
+#define _KEY_CODE_ARRAY_H
 
-#include <linux/input.h>
+#include <X11/Xlib.h>
+#include <glib.h>
 
-#include "x-set-keys.h"
+typedef GArray KeyCodeArray;
 
-Device *kd_initialize(XSetKeys *xsk, const gchar *device_filepath);
-void kd_finalize(XSetKeys *xsk);
+#define key_code_array_new(reserved_size)                               \
+  g_array_sized_new (TRUE, FALSE, sizeof (KeyCode), (reserved_size))
+#define key_code_array_free(array) g_array_free((array), TRUE)
+#define key_code_array_append(array, key_code)          \
+  (key_code_array_contains((array), (key_code))         \
+   ? g_array_append_val((array), (key_code)) : FALSE)
+#define key_code_array_get_data(array, index)   \
+  g_array_index((array), KeyCode, (index))
+#define key_code_array_get_length(array) ((array)->len)
 
-#define KD_EV_BITS_LENGTH (EV_MAX/8 + 1)
-gboolean kd_get_ev_bits(XSetKeys *xsk, guint8 ev_bits[]);
+gboolean key_code_array_remove(KeyCodeArray *array, KeyCode key_code);
+gboolean key_code_array_contains(const KeyCodeArray *array, KeyCode key_code);
 
-#define KD_KEY_BITS_LENGTH (KEY_MAX/8 + 1)
-gboolean kd_get_key_bits(XSetKeys *xsk, guint8 key_bits[]);
-
-#define kd_test_bit(array, bit) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
-
-#define kd_write(xsk, buffer, length)                               \
-  device_write(xsk_get_keyboard_device(xsk), (buffer), (length))
-
-#endif  /* _KEYBOARD_DEVICE_H */
+#endif /* _KEY_CODE_ARRAY_H */

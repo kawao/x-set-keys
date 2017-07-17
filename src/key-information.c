@@ -60,9 +60,10 @@ void ki_finalize(KeyInformation *key_info)
   ki_key_code_set_free(key_info->cursor_keys);
 }
 
-KeyCombination ki_keymap_to_key_combination(const KeyInformation *key_info,
-                                            KeyCode key_code,
-                                            const guchar kaymap[])
+KeyCombination
+ki_pressing_keys_to_key_combination(const KeyInformation *key_info,
+                                    KeyCode key_code,
+                                    const KeyCodeArray *pressing_keys)
 {
   KeyCombination result = { 0 };
   return result;
@@ -112,7 +113,7 @@ static void _initialize_modifier_info(Display *display,
       }
 
       modifier_index = _get_modifier_for_key_code(display, key_code);
-      if (modifier_index == KI_MODIFIER_UNKNOWN) {
+      if (modifier_index == KI_MODIFIER_OTHER) {
         continue;
       }
       if (key_info->modifier_keys[modifier_index]) {
@@ -161,7 +162,7 @@ static KI_KeyCodeArray *_new_modifier_keys(const XModifierKeymap *modmap,
 
 static KIModifier _get_modifier_for_key_code(Display *display, KeyCode key_code)
 {
-  gint modifier_index = KI_MODIFIER_UNKNOWN;
+  gint modifier_index = KI_MODIFIER_OTHER;
   KeySym *key_syms;
   gint num_key_sym;
   gint sym_index;
@@ -173,7 +174,7 @@ static KIModifier _get_modifier_for_key_code(Display *display, KeyCode key_code)
   for (sym_index = 0; sym_index < num_key_sym; sym_index++) {
     if (key_syms[sym_index] != NoSymbol) {
       modifier_index = _get_modifier_for_key_sym(key_syms[sym_index]);
-      if (modifier_index != KI_MODIFIER_UNKNOWN) {
+      if (modifier_index != KI_MODIFIER_OTHER) {
         break;
       }
     }
@@ -198,5 +199,5 @@ static KIModifier _get_modifier_for_key_sym(KeySym key_sym)
   case XK_Super_R:
     return KI_MODIFIER_SUPER;
   }
-  return KI_MODIFIER_UNKNOWN;
+  return KI_MODIFIER_OTHER;
 }

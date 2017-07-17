@@ -30,6 +30,7 @@ void ud_finalize(XSetKeys *xsk);
 gboolean ud_send_key_event(XSetKeys *xsk, KeyCode key_cord, gboolean is_press);
 gboolean ud_send_event(XSetKeys *xsk, struct input_event *event);
 
-#define ud_is_key_pressed(xsk, key) (xsk_get_uinput_keymap(xsk)[key])
+#define ud_is_key_pressed(xsk, key_code)                                \
+  key_code_array_contains(xsk_get_uinput_pressing_keys(xsk), (key_code))
 
 #endif  /* _UINPUT_DEVICE_H */

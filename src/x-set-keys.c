@@ -36,6 +36,8 @@ gboolean xsk_initialize(XSetKeys *xsk)
   }
   ki_initialize(xsk->display, &xsk->key_information);
   xsk->root_actions = action_list_new();
+  xsk->keyboard_pressing_keys = key_code_array_new(6);
+  xsk->uinput_pressing_keys = key_code_array_new(6);
   return TRUE;
 }
 
@@ -61,12 +63,18 @@ void xsk_finalize(XSetKeys *xsk)
   if (xsk->keyboard_device) {
     kd_finalize(xsk);
   }
-  if (xsk->root_actions) {
-    action_list_free(xsk->root_actions);
-  }
   if (xsk->display) {
     ki_finalize(&xsk->key_information);
     XCloseDisplay(xsk->display);
+  }
+  if (xsk->root_actions) {
+    action_list_free(xsk->root_actions);
+  }
+  if (xsk->keyboard_pressing_keys) {
+    key_code_array_free(xsk->keyboard_pressing_keys);
+  }
+  if (xsk->uinput_pressing_keys) {
+    key_code_array_free(xsk->uinput_pressing_keys);
   }
 }
 
@@ -135,8 +143,8 @@ const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
 {
   KeyCombination kc;
 
-  kc = ki_keymap_to_key_combination(xsk_get_key_information(xsk),
-                                    key_code,
-                                    xsk_get_keyboard_keymap(xsk));
+  kc = ki_pressing_keys_to_key_combination(xsk_get_key_information(xsk),
+                                           key_code,
+                                           xsk_get_keyboard_pressing_keys(xsk));
   return action_list_lookup(xsk_get_current_actions(xsk), &kc);
 }

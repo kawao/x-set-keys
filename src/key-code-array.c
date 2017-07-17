@@ -17,25 +17,31 @@
  *
  ***************************************************************************/
 
-#ifndef _KEYBOARD_DEVICE_H
-#define _KEYBOARD_DEVICE_H
+#include "key-code-array.h"
 
-#include <linux/input.h>
+gboolean key_code_array_remove(KeyCodeArray *array, KeyCode key_code)
+{
+  guint index;
 
-#include "x-set-keys.h"
+  for (index = 0; index < key_code_array_get_length(array); index++) {
+    if (key_code_array_get_data(array, index) == key_code) {
+      g_array_remove_index(array, index);
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
 
-Device *kd_initialize(XSetKeys *xsk, const gchar *device_filepath);
-void kd_finalize(XSetKeys *xsk);
+gboolean key_code_array_contains(const KeyCodeArray *array, KeyCode key_code)
+{
+  KeyCode *data_pointer;
 
-#define KD_EV_BITS_LENGTH (EV_MAX/8 + 1)
-gboolean kd_get_ev_bits(XSetKeys *xsk, guint8 ev_bits[]);
-
-#define KD_KEY_BITS_LENGTH (KEY_MAX/8 + 1)
-gboolean kd_get_key_bits(XSetKeys *xsk, guint8 key_bits[]);
-
-#define kd_test_bit(array, bit) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
-
-#define kd_write(xsk, buffer, length)                               \
-  device_write(xsk_get_keyboard_device(xsk), (buffer), (length))
-
-#endif  /* _KEYBOARD_DEVICE_H */
+  for (data_pointer = &key_code_array_get_data(array, 0);
+       *data_pointer;
+       data_pointer++) {
+    if (*data_pointer == key_code) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}

@@ -24,6 +24,7 @@
 #include <glib.h>
 
 #include "key-information.h"
+#include "key-code-array.h"
 #include "device.h"
 
 typedef struct _XSetKeys {
@@ -31,10 +32,10 @@ typedef struct _XSetKeys {
   KeyInformation key_information;
   gpointer root_actions;
   gpointer current_actions;
+  KeyCodeArray *keyboard_pressing_keys;
+  KeyCodeArray *uinput_pressing_keys;
   Device *keyboard_device;
   Device *uinput_device;
-  guchar keyboard_kaymap[G_MAXUINT8];
-  guchar uinput_keymap[G_MAXUINT8];
   struct timeval key_press_start_time;
   guint16 uinput_last_event_type;
 } XSetKeys;
@@ -60,11 +61,11 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
 #define xsk_get_key_information(xsk) (&(xsk)->key_information)
 #define xsk_get_current_actions(xsk) ((xsk)->current_actions)
 
+#define xsk_get_keyboard_pressing_keys(xsk) ((xsk)->keyboard_pressing_keys)
+#define xsk_get_uinput_pressing_keys(xsk) ((xsk)->uinput_pressing_keys)
+
 #define xsk_get_keyboard_device(xsk) ((xsk)->keyboard_device)
 #define xsk_get_uinput_device(xsk) ((xsk)->uinput_device)
-
-#define xsk_get_keyboard_keymap(xsk) ((xsk)->keyboard_kaymap)
-#define xsk_get_uinput_keymap(xsk) ((xsk)->uinput_keymap)
 
 #define xsk_get_key_press_start_time(xsk) ((xsk)->key_press_start_time)
 #define xsk_set_key_press_start_time(xsk, time) \
