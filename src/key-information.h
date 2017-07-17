@@ -37,7 +37,8 @@ typedef enum _KIModifier {
   KI_MODIFIER_OTHER = 6
 } KIModifier;
 
-#define KI_KIND_CURSOR ((1 << KI_MODIFIER_OTHER) + 1)
+#define KI_KIND_MODIFIER_OTHER (1 << KI_MODIFIER_OTHER)
+#define KI_KIND_CURSOR (KI_KIND_MODIFIER_OTHER + 1)
 
 typedef struct _KeyInformation {
   KeyCode modifier_key_code[KI_NUM_MODIFIER];
@@ -66,11 +67,11 @@ gboolean ki_contains_modifier(const KeyInformation *key_info,
 
 #define ki_is_modifier(key_info, key_code)                              \
   ((key_info)->modifier_mask_or_key_kind[key_code] &&                   \
-   (key_info)->modifier_mask_or_key_kind[key_code] <= (1 << KI_MODIFIER_OTHER))
+   (key_info)->modifier_mask_or_key_kind[key_code] <= KI_KIND_MODIFIER_OTHER)
 
 #define ki_is_regular_modifier(key_info, key_code)                      \
   ((key_info)->modifier_mask_or_key_kind[key_code] &&                   \
-   (key_info)->modifier_mask_or_key_kind[key_code] < (1 << KI_MODIFIER_OTHER))
+   (key_info)->modifier_mask_or_key_kind[key_code] < KI_KIND_MODIFIER_OTHER)
 
 #define ki_is_corsor(key_info, key_code)                                \
   ((key_info)->modifier_mask_or_key_kind[key_code] == KI_KIND_CURSOR)
