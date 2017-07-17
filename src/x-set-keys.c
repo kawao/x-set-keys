@@ -122,7 +122,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
     if (!seconds_since_pressed) {
       return XSK_INTERCEPTED;
     }
-    if (!ud_send_key_event(xsk, key_code, FALSE)) {
+    if (!ud_send_key_event(xsk, key_code, FALSE, FALSE)) {
       return XSK_ERROR;
     }
     _reset_current_actions(xsk);
@@ -136,7 +136,8 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
   if (result != XSK_PASSING_BY) {
     return result;
   }
-  return ud_send_key_event(xsk, key_code, TRUE) ? XSK_INTERCEPTED : XSK_ERROR;
+  return ud_send_key_event(xsk, key_code, TRUE, FALSE)
+    ? XSK_INTERCEPTED : XSK_ERROR;
 }
 
 const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)

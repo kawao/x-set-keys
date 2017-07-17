@@ -27,7 +27,10 @@
 Device *ud_initialize(XSetKeys *xsk);
 void ud_finalize(XSetKeys *xsk);
 
-gboolean ud_send_key_event(XSetKeys *xsk, KeyCode key_cord, gboolean is_press);
+gboolean ud_send_key_event(XSetKeys *xsk,
+                           KeyCode key_cord,
+                           gboolean is_press,
+                           gboolean is_temporary);
 gboolean ud_send_event(XSetKeys *xsk, struct input_event *event);
 
 #define ud_is_key_pressed(xsk, key_code)                                \

@@ -32,6 +32,9 @@ static gboolean _write_user_dev(Device *device);
 static gboolean _set_evbits(Device *device, XSetKeys *xsk);
 static gboolean _set_keybits(Device *device, XSetKeys *xsk);
 static gboolean _handle_input(gpointer user_data);
+static gboolean _send_event(XSetKeys *xsk,
+                            struct input_event *event,
+                            gboolean is_temporary);
 
 Device *ud_initialize(XSetKeys *xsk)
 {
@@ -74,21 +77,24 @@ void ud_finalize(XSetKeys *xsk)
   device_finalize(device);
 }
 
-gboolean ud_send_key_event(XSetKeys *xsk, KeyCode key_cord, gboolean is_press)
+gboolean ud_send_key_event(XSetKeys *xsk,
+                           KeyCode key_cord,
+                           gboolean is_press,
+                           gboolean is_temporary)
 {
   struct input_event event;
 
   event.type = EV_KEY;
   event.code = key_cord;
   event.value = is_press ? 1 : 0;
-  if (!ud_send_event(xsk, &event)) {
+  if (!_send_event(xsk, &event, is_temporary)) {
     return FALSE;
   }
 
   event.type = EV_SYN;
   event.code = SYN_REPORT;
   event.value = 0;
-  if (!ud_send_event(xsk, &event)) {
+  if (!_send_event(xsk, &event, is_temporary)) {
     return FALSE;
   }
 
@@ -97,35 +103,7 @@ gboolean ud_send_key_event(XSetKeys *xsk, KeyCode key_cord, gboolean is_press)
 
 gboolean ud_send_event(XSetKeys *xsk, struct input_event *event)
 {
-  Device *device = xsk_get_uinput_device(xsk);
-
-  switch (event->type) {
-  case EV_SYN:
-    if (xsk_get_uinput_last_event_type(xsk) == EV_SYN) {
-      return TRUE;
-    }
-    break;
-  case EV_KEY:
-    if (xsk_is_valid_key(event->code)) {
-      switch (event->value) {
-      case 0:
-        key_code_array_remove(xsk_get_uinput_pressing_keys(xsk), event->code);
-        break;
-      case 1:
-        key_code_array_append(xsk_get_uinput_pressing_keys(xsk), event->code);
-        break;
-      }
-    }
-    break;
-  }
-  xsk_set_uinput_last_event_type(xsk, event->type);
-
-  gettimeofday(&event->time, NULL);
-  debug_print("Write to uinput : type=%02x code=%d value=%d",
-              event->type,
-              event->code,
-              event->value);
-  return device_write(device, event, sizeof (*event));
+  return _send_event(xsk, event, FALSE);
 }
 
 static gint _open_uinput_device()
@@ -217,4 +195,41 @@ static gboolean _handle_input(gpointer user_data)
   }
   debug_print("Read from uinput : length=%ld", length);
   return kd_write(xsk, &event, length);
+}
+
+static gboolean _send_event(XSetKeys *xsk,
+                            struct input_event *event,
+                            gboolean is_temporary)
+{
+  if (!is_temporary) {
+    switch (event->type) {
+    case EV_SYN:
+      if (xsk_get_uinput_last_event_type(xsk) == EV_SYN) {
+        return TRUE;
+      }
+      break;
+    case EV_KEY:
+      if (xsk_is_valid_key(event->code)) {
+        switch (event->value) {
+        case 0:
+          if (!key_code_array_remove(xsk_get_uinput_pressing_keys(xsk),
+                                     event->code)) {
+            return TRUE;
+          }
+          break;
+        case 1:
+          key_code_array_append(xsk_get_uinput_pressing_keys(xsk), event->code);
+          break;
+        }
+      }
+      break;
+    }
+  }
+  xsk_set_uinput_last_event_type(xsk, event->type);
+  debug_print("Write to uinput : type=%02x code=%d value=%d",
+              event->type,
+              event->code,
+              event->value);
+  gettimeofday(&event->time, NULL);
+  return device_write(xsk_get_uinput_device(xsk), event, sizeof (*event));
 }
