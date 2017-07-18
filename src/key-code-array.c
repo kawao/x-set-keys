@@ -34,12 +34,10 @@ gboolean key_code_array_remove(KeyCodeArray *array, KeyCode key_code)
 
 gboolean key_code_array_contains(const KeyCodeArray *array, KeyCode key_code)
 {
-  KeyCode *data_pointer;
+  KeyCode *pointer;
 
-  for (data_pointer = &key_code_array_get_data(array, 0);
-       *data_pointer;
-       data_pointer++) {
-    if (*data_pointer == key_code) {
+  for (pointer = &key_code_array_get_data(array, 0); *pointer; pointer++) {
+    if (*pointer == key_code) {
       return TRUE;
     }
   }

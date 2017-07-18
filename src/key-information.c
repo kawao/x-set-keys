@@ -22,6 +22,8 @@
 #include "common.h"
 #include "key-information.h"
 
+#define _MODIFIER_PUNCTUATION '-'
+
 static const char *_modifier_names[] = {
   "alt",
   "control",
@@ -40,6 +42,7 @@ static KIModifier _get_modifier_for_modmap_row(Display *display,
 static KIModifier _get_modifier_for_key_code(Display *display,
                                              KeyCode key_code);
 static KIModifier _get_modifier_for_key_sym(KeySym key_sym);
+static KIModifier _get_modifier_for_char(char modifier_char);
 static void _set_modifier_info(KeyInformation *key_info,
                                KIModifier modifier,
                                XModifierKeymap *modmap,
@@ -61,7 +64,25 @@ ki_pressing_keys_to_key_combination(const KeyInformation *key_info,
                                     KeyCode key_code,
                                     const KeyCodeArray *pressing_keys)
 {
-  KeyCombination result = { 0 };
+  KeyCombination result;
+  KeyCode *pointer;
+  guchar modifiers = 0;
+  guchar mask;
+
+  for (pointer = &key_code_array_get_data(pressing_keys, 0);
+       *pointer;
+       pointer++) {
+    if (*pointer == key_code) {
+      continue;
+    }
+    mask = key_info->modifier_mask_or_key_kind[*pointer];
+    if (!mask || mask >= KI_KIND_MODIFIER_OTHER) {
+      continue;
+    }
+    modifiers |= mask;
+  }
+
+  key_combination_set_value(result, key_code, modifiers);
   return result;
 }
 
@@ -69,7 +90,53 @@ KeyCombination ki_string_to_key_combination(Display *display,
                                             const KeyInformation *key_info,
                                             const char *string)
 {
-  KeyCombination result = { 0 };
+  KeyCombination result;
+  KeyCode key_code;
+  guchar masks = 0;
+  const char *pointer = string;
+  gint length = strlen(string);
+  KeySym key_sym;
+
+  while (length > 2 && pointer[1] == _MODIFIER_PUNCTUATION) {
+    KIModifier modifier = _get_modifier_for_char(*pointer);
+    if (modifier == KI_MODIFIER_OTHER) {
+      g_critical("Illegal modifier character: %c", *pointer);
+      goto ERROR;
+    }
+    if (!key_info->modifier_key_code[modifier]) {
+      if (modifier == KI_MODIFIER_ALT &&
+          key_info->modifier_key_code[KI_MODIFIER_META]) {
+        modifier = KI_MODIFIER_META;
+      } else if (modifier == KI_MODIFIER_META &&
+                 key_info->modifier_key_code[KI_MODIFIER_ALT]) {
+        modifier = KI_MODIFIER_ALT;
+      } else {
+        g_critical("Modifier '%s' is not defined on your system",
+                   _modifier_names[modifier]);
+        goto ERROR;
+      }
+    }
+    masks |= (1 << modifier);
+    pointer += 2;
+    length -= 2;
+  }
+
+  key_sym = XStringToKeysym(pointer);
+  if (key_sym == NoSymbol) {
+    g_critical("Invalid key string: %s", pointer);
+    goto ERROR;
+  }
+  key_code = XKeysymToKeycode(display, key_sym);
+  if (!key_code) {
+    g_critical("Key '%s' is not defined on your system", pointer);
+    goto ERROR;
+  }
+
+  key_combination_set_value(result, key_code, masks);
+  return result;
+
+ ERROR:
+  key_combination_set_value(result, 0, 0);
   return result;
 }
 
@@ -77,6 +144,52 @@ KeyCodeArray *ki_string_to_key_code_array(Display *display,
                                           const KeyInformation *key_info,
                                           const char *string)
 {
+  KeyCodeArray *result = key_code_array_new(4);
+  const char *pointer = string;
+  gint length = strlen(string);
+  KeyCode key_code;
+  KeySym key_sym;
+
+  while (length > 2 && pointer[1] == _MODIFIER_PUNCTUATION) {
+    KIModifier modifier = _get_modifier_for_char(*pointer);
+    if (modifier == KI_MODIFIER_OTHER) {
+      g_critical("Illegal modifier character: %c", *pointer);
+      goto ERROR;
+    }
+    if (!key_info->modifier_key_code[modifier]) {
+      if (modifier == KI_MODIFIER_ALT &&
+          key_info->modifier_key_code[KI_MODIFIER_META]) {
+        modifier = KI_MODIFIER_META;
+      } else if (modifier == KI_MODIFIER_META &&
+                 key_info->modifier_key_code[KI_MODIFIER_ALT]) {
+        modifier = KI_MODIFIER_ALT;
+      } else {
+        g_critical("Modifier '%s' is not defined on your system",
+                   _modifier_names[modifier]);
+        goto ERROR;
+      }
+    }
+    key_code_array_append(result, key_info->modifier_key_code[modifier]);
+    pointer += 2;
+    length -= 2;
+  }
+
+  key_sym = XStringToKeysym(pointer);
+  if (key_sym == NoSymbol) {
+    g_critical("Invalid key string: %s", pointer);
+    goto ERROR;
+  }
+  key_code = XKeysymToKeycode(display, key_sym);
+  if (!key_code) {
+    g_critical("Key '%s' is not defined on your system", pointer);
+    goto ERROR;
+  }
+
+  key_code_array_append(result, key_code);
+  return result;
+
+ ERROR:
+  key_code_array_free(result);
   return NULL;
 }
 
@@ -84,6 +197,13 @@ gboolean ki_contains_modifier(const KeyInformation *key_info,
                               const KeyCodeArray *keys,
                               KIModifier modifier)
 {
+  KeyCode *pointer;
+
+  for (pointer = &key_code_array_get_data(keys, 0); *pointer; pointer++) {
+    if (key_info->modifier_mask_or_key_kind[*pointer] == (1 << modifier)) {
+      return TRUE;
+    }
+  }
   return FALSE;
 }
 
@@ -125,7 +245,7 @@ static KIModifier _get_modifier_for_modmap_row(Display *display,
       continue;
     }
     if (key_info->modifier_key_code[modifier]) {
-      g_warning("%s corresponds to multi modifiers, row=%d",
+      g_warning("'%s' corresponds to multi modifiers, row=%d",
                 _modifier_names[modifier],
                 row);
       continue;
@@ -175,6 +295,29 @@ static KIModifier _get_modifier_for_key_sym(KeySym key_sym)
     return KI_MODIFIER_SUPER;
   }
   return KI_MODIFIER_OTHER;
+}
+
+static KIModifier _get_modifier_for_char(char modifier_char)
+{
+    switch (modifier_char) {
+    case 'A':
+    case 'a':
+      return KI_MODIFIER_ALT;
+    case 'C':
+    case 'c':
+      return KI_MODIFIER_CONTROL;
+    case 'H':
+    case 'h':
+      return KI_MODIFIER_HYPER;
+    case 'M':
+    case 'm':
+      return KI_MODIFIER_META;
+    case 'S':
+      return KI_MODIFIER_SHIFT;
+    case 's':
+      return KI_MODIFIER_SUPER;
+    }
+    return KI_MODIFIER_OTHER;
 }
 
 static void _set_modifier_info(KeyInformation *key_info,

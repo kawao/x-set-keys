@@ -31,5 +31,6 @@ gint action_compare_key_combination(gconstpointer a,
                                     gconstpointer b,
                                     gpointer user_data)
 {
-  return kc_compare((const KeyCombination *)a, (const KeyCombination *)b);
+  return key_combination_compare(*(const KeyCombination *)a,
+                                 *(const KeyCombination *)b);
 }

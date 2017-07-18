@@ -33,6 +33,9 @@ typedef union _KeyCombination {
   } s;
 } KeyCombination;
 
-#define kc_compare(kc1, kc2) ((kc1)->i - (kc2)->i)
+#define key_combination_set_value(kc, code, mods) \
+  ((kc).s.key_code = (code), (kc).s.modifiers = (mods))
+#define key_combination_is_null(kc) (!(kc).i)
+#define key_combination_compare(kc1, kc2) ((kc1).i - (kc2).i)
 
 #endif /* _KEY_COMBINATION_H */
