@@ -134,6 +134,12 @@ KeyCombination ki_string_to_key_combination(Display *display,
     g_critical("Key '%s' is not defined on your system", pointer);
     goto ERROR;
   }
+  if (key_code <= _KEY_CODE_OFFSET) {
+    g_critical("Key code of '%s' is  out of range, key-code=%d",
+               pointer,
+               key_code);
+    goto ERROR;
+  }
   key_code -= _KEY_CODE_OFFSET;
 
   key_combination_set_value(result, key_code, masks);
@@ -186,6 +192,12 @@ KeyCodeArray *ki_string_to_key_code_array(Display *display,
   key_code = XKeysymToKeycode(display, key_sym);
   if (!key_code) {
     g_critical("Key '%s' is not defined on your system", pointer);
+    goto ERROR;
+  }
+  if (key_code <= _KEY_CODE_OFFSET) {
+    g_critical("Key code of '%s' is  out of range, key-code=%d",
+               pointer,
+               key_code);
     goto ERROR;
   }
   key_code -= _KEY_CODE_OFFSET;
@@ -335,6 +347,12 @@ static void _set_modifier_info(KeyInformation *key_info,
   for (col = 0; col < modmap->max_keypermod; col++) {
     KeyCode key_code = modmap->modifiermap[row * modmap->max_keypermod + col];
     if (!key_code) {
+      continue;
+    }
+    if (key_code <= _KEY_CODE_OFFSET) {
+      g_critical("Key code of modifier %s is out of range, key-code=%d",
+                 _modifier_names[modifier],
+                 key_code);
       continue;
     }
     key_code -= _KEY_CODE_OFFSET;
