@@ -18,19 +18,22 @@
  ***************************************************************************/
 
 #include <X11/keysym.h>
+#include <linux/input.h>
 
 #include "common.h"
 #include "key-information.h"
 
+#define _KEY_CODE_OFFSET 8
 #define _MODIFIER_PUNCTUATION '-'
 
-static const char *_modifier_names[] = {
+static const gchar *_modifier_names[] = {
   "alt",
   "control",
   "hyper",
   "meta",
   "shift",
   "super",
+  "(unknown)"
 };
 
 static void _initialize_modifier_info(Display *display,
@@ -88,12 +91,12 @@ ki_pressing_keys_to_key_combination(const KeyInformation *key_info,
 
 KeyCombination ki_string_to_key_combination(Display *display,
                                             const KeyInformation *key_info,
-                                            const char *string)
+                                            const gchar *string)
 {
   KeyCombination result;
   KeyCode key_code;
   guchar masks = 0;
-  const char *pointer = string;
+  const gchar *pointer = string;
   gint length = strlen(string);
   KeySym key_sym;
 
@@ -123,7 +126,7 @@ KeyCombination ki_string_to_key_combination(Display *display,
 
   key_sym = XStringToKeysym(pointer);
   if (key_sym == NoSymbol) {
-    g_critical("Invalid key string: %s", pointer);
+    g_critical("Invalid key string: '%s'", pointer);
     goto ERROR;
   }
   key_code = XKeysymToKeycode(display, key_sym);
@@ -131,6 +134,7 @@ KeyCombination ki_string_to_key_combination(Display *display,
     g_critical("Key '%s' is not defined on your system", pointer);
     goto ERROR;
   }
+  key_code -= _KEY_CODE_OFFSET;
 
   key_combination_set_value(result, key_code, masks);
   return result;
@@ -142,10 +146,10 @@ KeyCombination ki_string_to_key_combination(Display *display,
 
 KeyCodeArray *ki_string_to_key_code_array(Display *display,
                                           const KeyInformation *key_info,
-                                          const char *string)
+                                          const gchar *string)
 {
   KeyCodeArray *result = key_code_array_new(4);
-  const char *pointer = string;
+  const gchar *pointer = string;
   gint length = strlen(string);
   KeyCode key_code;
   KeySym key_sym;
@@ -176,7 +180,7 @@ KeyCodeArray *ki_string_to_key_code_array(Display *display,
 
   key_sym = XStringToKeysym(pointer);
   if (key_sym == NoSymbol) {
-    g_critical("Invalid key string: %s", pointer);
+    g_critical("Invalid key string: '%s'", pointer);
     goto ERROR;
   }
   key_code = XKeysymToKeycode(display, key_sym);
@@ -184,6 +188,7 @@ KeyCodeArray *ki_string_to_key_code_array(Display *display,
     g_critical("Key '%s' is not defined on your system", pointer);
     goto ERROR;
   }
+  key_code -= _KEY_CODE_OFFSET;
 
   key_code_array_append(result, key_code);
   return result;
@@ -332,6 +337,7 @@ static void _set_modifier_info(KeyInformation *key_info,
     if (!key_code) {
       continue;
     }
+    key_code -= _KEY_CODE_OFFSET;
     key_info->modifier_mask_or_key_kind[key_code] = (1 << modifier);
     if (modifier != KI_MODIFIER_OTHER &&
         !key_info->modifier_key_code[modifier]) {
@@ -343,26 +349,20 @@ static void _set_modifier_info(KeyInformation *key_info,
 
 static void _initialize_cursor_info(Display *display, KeyInformation *key_info)
 {
-  KeySym key_syms[] = {
-    XK_Home,
-    XK_Left,
-    XK_Up,
-    XK_Right,
-    XK_Down,
-    XK_Prior,
-    XK_Page_Up,
-    XK_Next,
-    XK_Page_Down,
-    XK_End,
-    XK_Begin,
-    NoSymbol
+  KeyCode key_codes[] = {
+    KEY_HOME,
+    KEY_UP,
+    KEY_PAGEUP,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_END,
+    KEY_DOWN,
+    KEY_PAGEDOWN,
+    0
   };
-  KeySym *pointer;
+  KeyCode *pointer;
 
-  for (pointer = key_syms; *pointer != NoSymbol; pointer++) {
-    KeyCode key_code = XKeysymToKeycode(display, *pointer);
-    if (!key_code) {
-      key_info->modifier_mask_or_key_kind[key_code] = KI_KIND_CURSOR;
-    }
+  for (pointer = key_codes; *pointer; pointer++) {
+    key_info->modifier_mask_or_key_kind[*pointer] = KI_KIND_CURSOR;
   }
 }
