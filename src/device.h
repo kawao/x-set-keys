@@ -28,7 +28,7 @@ typedef struct _Device {
 } Device;
 
 Device *device_initialize(gint fd,
-                          const char *name,
+                          const gchar *name,
                           GSourceFunc callback,
                           gpointer user_data);
 void device_finalize(Device *device);

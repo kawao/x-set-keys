@@ -55,11 +55,11 @@ ki_pressing_keys_to_key_combination(const KeyInformation *key_info,
 
 KeyCombination ki_string_to_key_combination(Display *display,
                                             const KeyInformation *key_info,
-                                            const char *string);
+                                            const gchar *string);
 
 KeyCodeArray *ki_string_to_key_code_array(Display *display,
                                           const KeyInformation *key_info,
-                                          const char *string);
+                                          const gchar *string);
 
 gboolean ki_contains_modifier(const KeyInformation *key_info,
                               const KeyCodeArray *keys,

@@ -31,7 +31,7 @@ static gboolean _dispatch(GSource *source,
                           gpointer user_data);
 
 Device *device_initialize(gint fd,
-                          const char *name,
+                          const gchar *name,
                           GSourceFunc callback,
                           gpointer user_data)
 {

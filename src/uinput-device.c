@@ -108,7 +108,7 @@ gboolean ud_send_event(XSetKeys *xsk, struct input_event *event)
 
 static gint _open_uinput_device()
 {
-  const char* filepath[] = { "/dev/input/uinput", "/dev/uinput" };
+  const gchar* filepath[] = { "/dev/input/uinput", "/dev/uinput" };
   gint fd;
   gint index;
 
