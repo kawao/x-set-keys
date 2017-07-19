@@ -56,7 +56,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
                                 KeyCode key_code,
                                 gint seconds_since_pressed);
 
-#define xsk_is_valid_key(key) ((key) > 0 && (key) < G_MAXUINT8)
+#define xsk_get_display(xsk) ((xsk)->display)
 
 #define xsk_get_key_information(xsk) (&(xsk)->key_information)
 #define xsk_get_current_actions(xsk) ((xsk)->current_actions)
@@ -74,5 +74,8 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
 #define xsk_get_uinput_last_event_type(xsk) ((xsk)->uinput_last_event_type)
 #define xsk_set_uinput_last_event_type(xsk, type) \
   ((xsk)->uinput_last_event_type = (type))
+
+#define xsk_is_valid_key_code(key_code) \
+  ((key_code) > 0 && (key_code) < G_MAXUINT8)
 
 #endif /* _X_SET_KEYS_H */

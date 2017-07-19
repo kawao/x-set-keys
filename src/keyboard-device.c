@@ -238,7 +238,7 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
     }
     break;
   case EV_KEY:
-    if (!xsk_is_valid_key(event->code)) {
+    if (!xsk_is_valid_key_code(event->code)) {
       break;
     }
     switch (event->value) {
