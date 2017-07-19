@@ -26,8 +26,10 @@
 #define MAIN
 #include "common.h"
 #include "x-set-keys.h"
+#include "config.h"
 
 typedef struct __Option {
+  gchar *config_filepath;
   gchar *device_filepath;
 } _Option;
 
@@ -119,9 +121,9 @@ static gboolean _run(const _Option *option)
 
   if (!xsk_initialize(&xsk)) {
     _error_occurred = TRUE;
-  }
-  /* load config */
-  else if (!xsk_start(&xsk, option->device_filepath)) {
+  } else if (!config_load(&xsk, option->config_filepath)) {
+    _error_occurred = TRUE;
+  } else if (!xsk_start(&xsk, option->device_filepath)) {
     _error_occurred = TRUE;
   }
 
