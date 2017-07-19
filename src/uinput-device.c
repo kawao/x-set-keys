@@ -209,18 +209,19 @@ static gboolean _send_event(XSetKeys *xsk,
       }
       break;
     case EV_KEY:
-      if (xsk_is_valid_key_code(event->code)) {
-        switch (event->value) {
-        case 0:
-          if (!key_code_array_remove(xsk_get_uinput_pressing_keys(xsk),
-                                     event->code)) {
-            return TRUE;
-          }
-          break;
-        case 1:
-          key_code_array_append(xsk_get_uinput_pressing_keys(xsk), event->code);
-          break;
+      if (!xsk_is_valid_key_code(event->code)) {
+        break;
+      }
+      switch (event->value) {
+      case 0:
+        if (!key_code_array_remove(xsk_get_uinput_pressing_keys(xsk),
+                                   event->code)) {
+          return TRUE;
         }
+        break;
+      case 1:
+        key_code_array_append(xsk_get_uinput_pressing_keys(xsk), event->code);
+        break;
       }
       break;
     }
