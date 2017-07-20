@@ -27,14 +27,14 @@ typedef GArray KeyCodeArray;
 
 #define key_code_array_new(reserved_size)                               \
   g_array_sized_new (TRUE, FALSE, sizeof (KeyCode), (reserved_size))
-#define key_code_array_free(array) g_array_free((array), TRUE)
-#define key_code_array_append(array, key_code)          \
+#define key_code_array_add(array, key_code)             \
   (key_code_array_contains((array), (key_code))         \
    ? FALSE : g_array_append_val((array), (key_code)))
 #define key_code_array_get_at(array, index)   \
   g_array_index((array), KeyCode, (index))
 #define key_code_array_get_length(array) ((array)->len)
 
+void key_code_array_free(KeyCodeArray *array);
 gboolean key_code_array_remove(KeyCodeArray *array, KeyCode key_code);
 gboolean key_code_array_contains(const KeyCodeArray *array, KeyCode key_code);
 

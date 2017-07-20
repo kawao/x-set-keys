@@ -19,6 +19,11 @@
 
 #include "key-code-array.h"
 
+void key_code_array_free(KeyCodeArray *array)
+{
+  g_array_free((array), TRUE);
+}
+
 gboolean key_code_array_remove(KeyCodeArray *array, KeyCode key_code)
 {
   guint index;

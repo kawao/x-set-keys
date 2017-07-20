@@ -179,7 +179,7 @@ KeyCodeArray *ki_string_to_key_code_array(Display *display,
         goto ERROR;
       }
     }
-    key_code_array_append(result, key_info->modifier_key_code[modifier]);
+    key_code_array_add(result, key_info->modifier_key_code[modifier]);
     pointer += 2;
     length -= 2;
   }
@@ -202,7 +202,7 @@ KeyCodeArray *ki_string_to_key_code_array(Display *display,
   }
   key_code -= _KEY_CODE_OFFSET;
 
-  key_code_array_append(result, key_code);
+  key_code_array_add(result, key_code);
   return result;
 
  ERROR:

@@ -220,7 +220,7 @@ static gboolean _send_event(XSetKeys *xsk,
         }
         break;
       case 1:
-        key_code_array_append(xsk_get_uinput_pressing_keys(xsk), event->code);
+        key_code_array_add(xsk_get_uinput_pressing_keys(xsk), event->code);
         break;
       }
       break;
