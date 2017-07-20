@@ -63,8 +63,8 @@ static void _create_key_code_array(XSetKeys *xsk, const gchar *string)
     GString *text = g_string_sized_new(32);
     KeyCode *pointer;
 
-    for (pointer = &key_code_array_get_data(array, 0); *pointer; pointer++) {
-      if (pointer != &key_code_array_get_data(array, 0)) {
+    for (pointer = &key_code_array_get_at(array, 0); *pointer; pointer++) {
+      if (pointer != &key_code_array_get_at(array, 0)) {
         g_string_append(text, ", ");
       }
       g_string_append_printf(text, "%d", *pointer);

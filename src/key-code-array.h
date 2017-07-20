@@ -31,7 +31,7 @@ typedef GArray KeyCodeArray;
 #define key_code_array_append(array, key_code)          \
   (key_code_array_contains((array), (key_code))         \
    ? FALSE : g_array_append_val((array), (key_code)))
-#define key_code_array_get_data(array, index)   \
+#define key_code_array_get_at(array, index)   \
   g_array_index((array), KeyCode, (index))
 #define key_code_array_get_length(array) ((array)->len)
 

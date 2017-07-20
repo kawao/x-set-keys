@@ -72,7 +72,7 @@ ki_pressing_keys_to_key_combination(const KeyInformation *key_info,
   guchar modifiers = 0;
   guchar mask;
 
-  for (pointer = &key_code_array_get_data(pressing_keys, 0);
+  for (pointer = &key_code_array_get_at(pressing_keys, 0);
        *pointer;
        pointer++) {
     if (*pointer == key_code) {
@@ -216,7 +216,7 @@ gboolean ki_contains_modifier(const KeyInformation *key_info,
 {
   KeyCode *pointer;
 
-  for (pointer = &key_code_array_get_data(keys, 0); *pointer; pointer++) {
+  for (pointer = &key_code_array_get_at(keys, 0); *pointer; pointer++) {
     if (key_info->modifier_mask_or_key_kind[*pointer] == (1 << modifier)) {
       return TRUE;
     }

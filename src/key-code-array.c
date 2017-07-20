@@ -24,7 +24,7 @@ gboolean key_code_array_remove(KeyCodeArray *array, KeyCode key_code)
   guint index;
 
   for (index = 0; index < key_code_array_get_length(array); index++) {
-    if (key_code_array_get_data(array, index) == key_code) {
+    if (key_code_array_get_at(array, index) == key_code) {
       g_array_remove_index(array, index);
       return TRUE;
     }
@@ -36,7 +36,7 @@ gboolean key_code_array_contains(const KeyCodeArray *array, KeyCode key_code)
 {
   KeyCode *pointer;
 
-  for (pointer = &key_code_array_get_data(array, 0); *pointer; pointer++) {
+  for (pointer = &key_code_array_get_at(array, 0); *pointer; pointer++) {
     if (*pointer == key_code) {
       return TRUE;
     }
