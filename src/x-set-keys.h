@@ -50,16 +50,17 @@ gboolean xsk_initialize(XSetKeys *xsk);
 gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath);
 void xsk_finalize(XSetKeys *xsk);
 
-gboolean xsk_is_disabled(XSetKeys *xsk);
 XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code);
 XskResult xsk_handle_key_repeat(XSetKeys *xsk,
                                 KeyCode key_code,
                                 gint seconds_since_pressed);
+gboolean xsk_send_key_events(XSetKeys *xsk,
+                             const KeyCodeArrayArray *key_arrays);
 
 #define xsk_get_display(xsk) ((xsk)->display)
 
 #define xsk_get_key_information(xsk) (&(xsk)->key_information)
-#define xsk_get_current_actions(xsk) ((xsk)->current_actions)
+#define xsk_get_root_actions(xsk) ((xsk)->root_actions)
 
 #define xsk_get_keyboard_pressing_keys(xsk) ((xsk)->keyboard_pressing_keys)
 #define xsk_get_uinput_pressing_keys(xsk) ((xsk)->uinput_pressing_keys)

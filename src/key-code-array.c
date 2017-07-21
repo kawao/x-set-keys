@@ -19,9 +19,11 @@
 
 #include "key-code-array.h"
 
-void key_code_array_free(KeyCodeArray *array)
+static void _add_to_array_array(gpointer array, gpointer array_array);
+
+void key_code_array_free(gpointer array)
 {
-  g_array_free((array), TRUE);
+  g_array_free(array, TRUE);
 }
 
 gboolean key_code_array_remove(KeyCodeArray *array, KeyCode key_code)
@@ -47,4 +49,17 @@ gboolean key_code_array_contains(const KeyCodeArray *array, KeyCode key_code)
     }
   }
   return FALSE;
+}
+
+KeyCodeArrayArray *key_code_array_array_deprive(KeyCodeArrayArray *from)
+{
+  KeyCodeArrayArray *result = key_code_array_array_new(from->len);
+  key_code_array_array_foreach(from, _add_to_array_array, result);
+  from->len = 0;
+  return result;
+}
+
+static void _add_to_array_array(gpointer array, gpointer array_array)
+{
+  key_code_array_array_add(array_array, array);
 }

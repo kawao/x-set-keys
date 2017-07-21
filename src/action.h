@@ -22,13 +22,24 @@
 
 #include "x-set-keys.h"
 
+typedef enum _ActionType {
+  ACTION_TYPE_KEY_EVENTS,
+  ACTION_TYPE_MULTI_STROKE,
+  ACTION_TYPE_START_SELECTION
+} ActionType;
+
 typedef struct _Action {
+  ActionType type;
   gboolean (*run)(XSetKeys *xsk, gconstpointer data);
   void (*free_data)(gpointer data);
   gpointer data;
 } Action;
 
-const Action *action_lookup(XSetKeys *xsk, KeyCode key_code);
+gboolean action_add_key_action(XSetKeys *xsk,
+                               const KeyCombinationArray *input_keys,
+                               KeyCodeArrayArray *output_keys);
+
+typedef GTree ActionList;
 
 void action_free(gpointer action);
 gint action_compare_key_combination(gconstpointer a,
@@ -44,7 +55,5 @@ gint action_compare_key_combination(gconstpointer a,
                 (action))
 #define action_list_lookup(list, key_combination)   \
   g_tree_lookup((list), (key_combination))
-#define action_list_foreach(list, func, user_data)  \
-  g_tree_foreach((list), (func), (user_data))
 
 #endif /* _ACTION_H */

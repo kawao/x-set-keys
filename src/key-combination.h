@@ -33,9 +33,20 @@ typedef union _KeyCombination {
   } s;
 } KeyCombination;
 
-#define key_combination_set_value(kc, code, mods) \
+#define key_combination_set_value(kc, code, mods)       \
   ((kc).s.key_code = (code), (kc).s.modifiers = (mods))
 #define key_combination_is_null(kc) (!(kc).i)
 #define key_combination_compare(kc1, kc2) ((kc1).i - (kc2).i)
+
+typedef GArray KeyCombinationArray;
+
+#define key_combination_array_new(reserved_size)                        \
+  g_array_sized_new(FALSE, FALSE, sizeof (KeyCombination), (reserved_size))
+#define key_combination_array_free(array) g_array_free((array), TRUE)
+#define key_combination_array_add(array, kc) g_array_append_val((array), (kc))
+#define key_combination_array_clear(array) g_array_set_size((array), 0)
+#define key_combination_array_get_length(array) (array)->len
+#define key_combination_array_get_at(array, index)  \
+  g_array_index((array), KeyCombination, (index))
 
 #endif /* _KEY_COMBINATION_H */

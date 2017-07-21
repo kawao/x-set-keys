@@ -19,12 +19,42 @@
 
 #include "common.h"
 #include "config.h"
+#include "action.h"
 
-static void _create_key_combination(XSetKeys *xsk, const gchar *string);
-static void _create_key_code_array(XSetKeys *xsk, const gchar *string);
+static KeyCombination _create_key_combination(XSetKeys *xsk,
+                                              const gchar *string);
+static KeyCodeArray *_create_key_code_array(XSetKeys *xsk, const gchar *string);
 
 gboolean config_load(XSetKeys *xsk, gchar filepath[])
 {
+  KeyCombinationArray *inputs = key_combination_array_new(6);
+  KeyCodeArrayArray *outputs = key_code_array_array_new(6);
+  gboolean result;
+  KeyCombination kc;
+
+  kc = _create_key_combination(xsk, "C-m");
+  key_combination_array_add(inputs, kc);
+  key_code_array_array_add(outputs, _create_key_code_array(xsk, "Return"));
+
+  result = action_add_key_action(xsk, inputs, outputs);
+  g_warn_if_fail(result);
+
+  key_combination_array_clear(inputs);
+  key_code_array_array_clear(outputs);
+
+#if 0
+  key_combination_array_add(inputs, kc);
+  key_code_array_array_add(outputs, _create_key_code_array(xsk, "Tab"));
+  result = action_add_key_action(xsk, inputs, outputs);
+  g_warn_if_fail(result);
+#endif
+
+  key_combination_array_free(inputs);
+  key_code_array_array_free(outputs);
+
+ return TRUE;
+
+#if 0
   _create_key_combination(xsk, "C-A-Delete");
   _create_key_combination(xsk, "C-B-Delete");
   _create_key_combination(xsk, "C-M-Delete");
@@ -40,9 +70,11 @@ gboolean config_load(XSetKeys *xsk, gchar filepath[])
   _create_key_code_array(xsk, "C-A-Caps_Lock");
 
   return FALSE;
+#endif
 }
 
-static void _create_key_combination(XSetKeys *xsk, const gchar *string)
+static KeyCombination _create_key_combination(XSetKeys *xsk,
+                                              const gchar *string)
 {
   KeyCombination kc = ki_string_to_key_combination(xsk_get_display(xsk),
                                                    xsk_get_key_information(xsk),
@@ -51,14 +83,16 @@ static void _create_key_combination(XSetKeys *xsk, const gchar *string)
               string,
               kc.s.key_code,
               kc.s.modifiers);
+  return kc;
 }
 
-static void _create_key_code_array(XSetKeys *xsk, const gchar *string)
+static KeyCodeArray *_create_key_code_array(XSetKeys *xsk, const gchar *string)
 {
   KeyCodeArray *array =
     ki_string_to_key_code_array(xsk_get_display(xsk),
                                 xsk_get_key_information(xsk),
                                 string);
+#if 0
   if (array) {
     GString *text = g_string_sized_new(32);
     KeyCode *pointer;
@@ -76,4 +110,6 @@ static void _create_key_code_array(XSetKeys *xsk, const gchar *string)
   } else {
     debug_print("%s: NULL", string);
   }
+#endif
+  return array;
 }

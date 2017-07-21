@@ -17,6 +17,7 @@
  *
  ***************************************************************************/
 
+#include "common.h"
 #include "x-set-keys.h"
 #include "action.h"
 #include "keyboard-device.h"
@@ -25,7 +26,12 @@
 #define _reset_current_actions(xsk)                 \
   ((xsk)->current_actions = (xsk)->root_actions)
 
-const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code);
+static gboolean _is_disabled(XSetKeys *xsk);
+static const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code);
+static gboolean _send_regular_modifiers_event(XSetKeys *xsk,
+                                              const KeyCodeArray *keys,
+                                              gboolean is_press);
+static gboolean _send_key_events(XSetKeys *xsk, const KeyCode *keys);
 
 gboolean xsk_initialize(XSetKeys *xsk)
 {
@@ -78,16 +84,11 @@ void xsk_finalize(XSetKeys *xsk)
   }
 }
 
-gboolean xsk_is_disabled(XSetKeys *xsk)
-{
-  return FALSE;
-}
-
 XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
 {
   const Action *action;
 
-  if (xsk_is_disabled(xsk)) {
+  if (_is_disabled(xsk)) {
     return XSK_PASSING_BY;
   }
   action = _lookup_action(xsk, key_code);
@@ -112,7 +113,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
   XskResult result;
 
   if (ud_is_key_pressed(xsk, key_code)) {
-    if (xsk_is_disabled(xsk)) {
+    if (_is_disabled(xsk)) {
       return XSK_PASSING_BY;
     }
     action = _lookup_action(xsk, key_code);
@@ -140,12 +141,72 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
     ? XSK_INTERCEPTED : XSK_ERROR;
 }
 
-const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
+gboolean xsk_send_key_events(XSetKeys *xsk, const KeyCodeArrayArray *key_arrays)
+{
+  gint index;
+
+  if (!_send_regular_modifiers_event(xsk, xsk->uinput_pressing_keys, FALSE)) {
+    return FALSE;
+  }
+  for (index = 0;
+       index < key_code_array_array_get_length(key_arrays);
+       index++) {
+    KeyCodeArray *array = key_code_array_array_get_at(key_arrays, index);
+    if (!_send_key_events(xsk, &key_code_array_get_at(array, 0))) {
+      return FALSE;
+    }
+  }
+  if (!_send_regular_modifiers_event(xsk, xsk->uinput_pressing_keys, TRUE)) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+gboolean _is_disabled(XSetKeys *xsk)
+{
+  return FALSE;
+}
+
+static const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
 {
   KeyCombination kc;
 
-  kc = ki_pressing_keys_to_key_combination(xsk_get_key_information(xsk),
+  kc = ki_pressing_keys_to_key_combination(&xsk->key_information,
                                            key_code,
-                                           xsk_get_keyboard_pressing_keys(xsk));
-  return action_list_lookup(xsk_get_current_actions(xsk), &kc);
+                                           xsk->keyboard_pressing_keys);
+  return action_list_lookup(xsk->current_actions, &kc);
+}
+
+static gboolean _send_regular_modifiers_event(XSetKeys *xsk,
+                                              const KeyCodeArray *keys,
+                                              gboolean is_press)
+{
+  const KeyCode *pointer;
+
+  for (pointer = &key_code_array_get_at(keys, 0); *pointer; pointer++) {
+    if (!ki_is_regular_modifier(&xsk->key_information, *pointer)) {
+      continue;
+    }
+    if (!ud_send_key_event(xsk, *pointer, is_press, TRUE)) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+static gboolean _send_key_events(XSetKeys *xsk, const KeyCode *keys)
+{
+  if (!*keys) {
+    return TRUE;
+  }
+  if (!ud_send_key_event(xsk, *keys, TRUE, TRUE)) {
+    return FALSE;
+  }
+  if (!_send_key_events(xsk, keys + 1)) {
+    return FALSE;
+  }
+  if (!ud_send_key_event(xsk, *keys, FALSE, TRUE)) {
+    return FALSE;
+  }
+  return TRUE;
 }
