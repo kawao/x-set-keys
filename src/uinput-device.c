@@ -36,9 +36,9 @@ static gboolean _send_event(XSetKeys *xsk,
                             struct input_event *event,
                             gboolean is_temporary);
 
-Device *ud_initialize(XSetKeys *xsk)
+UInputDevice *ud_initialize(XSetKeys *xsk)
 {
-  Device *device;
+  UInputDevice *device;
   gint fd = _open_uinput_device();
 
   if (fd < 0) {
@@ -46,35 +46,43 @@ Device *ud_initialize(XSetKeys *xsk)
                " Maybe uinput module is not loaded");
     return NULL;
   }
-  device = device_initialize(fd, "uinput device", _handle_input, xsk);
-  if (!_write_user_dev(device)) {
-    device_finalize(device);
+  device = (UInputDevice *)device_initialize(fd,
+                                             "uinput device",
+                                             sizeof (UInputDevice),
+                                             _handle_input,
+                                             xsk);
+  if (!_write_user_dev(&device->device)) {
+    device_finalize(&device->device);
     return NULL;
   }
-  if (!_set_evbits(device, xsk)) {
-    device_finalize(device);
+  if (!_set_evbits(&device->device, xsk)) {
+    device_finalize(&device->device);
     return NULL;
   }
-  if (!_set_keybits(device, xsk)) {
-    device_finalize(device);
+  if (!_set_keybits(&device->device, xsk)) {
+    device_finalize(&device->device);
     return NULL;
   }
   if (ioctl(fd, UI_DEV_CREATE) < 0) {
     print_error("Failed to create uinput device");
-    device_finalize(device);
+    device_finalize(&device->device);
     return NULL;
   }
+  device->pressing_keys = key_code_array_new(6);
   return device;
 }
 
 void ud_finalize(XSetKeys *xsk)
 {
-  Device *device = xsk_get_uinput_device(xsk);
+  UInputDevice *device = xsk_get_uinput_device(xsk);
 
-  if (ioctl(device_get_fd(device), UI_DEV_DESTROY) < 0) {
+  if (ioctl(device_get_fd(&device->device), UI_DEV_DESTROY) < 0) {
     print_error("Failed to destroy uinput device");
   }
-  device_finalize(device);
+  if (device->pressing_keys) {
+    key_code_array_free(device->pressing_keys);
+  }
+  device_finalize(&device->device);
 }
 
 gboolean ud_send_key_event(XSetKeys *xsk,
@@ -182,14 +190,14 @@ static gboolean _set_keybits(Device *device, XSetKeys *xsk)
 static gboolean _handle_input(gpointer user_data)
 {
   XSetKeys *xsk;
-  Device *device;
+  UInputDevice *device;
   gssize length;
   struct input_event event;
 
   xsk = user_data;
   device = xsk_get_uinput_device(xsk);
 
-  length = device_read(device, &event, sizeof (event));
+  length = device_read(&device->device, &event, sizeof (event));
   if (length < 0) {
     return FALSE;
   }
@@ -201,36 +209,37 @@ static gboolean _send_event(XSetKeys *xsk,
                             struct input_event *event,
                             gboolean is_temporary)
 {
+  UInputDevice *device = xsk_get_uinput_device(xsk);
+
   if (!is_temporary) {
     switch (event->type) {
     case EV_SYN:
-      if (xsk_get_uinput_last_event_type(xsk) == EV_SYN) {
+      if (device->last_event_type == EV_SYN) {
         return TRUE;
       }
       break;
     case EV_KEY:
-      if (!xsk_is_valid_key_code(event->code)) {
+      if (!ki_is_valid_key_code(event->code)) {
         break;
       }
       switch (event->value) {
       case 0:
-        if (!key_code_array_remove(xsk_get_uinput_pressing_keys(xsk),
-                                   event->code)) {
+        if (!key_code_array_remove(device->pressing_keys, event->code)) {
           return TRUE;
         }
         break;
       case 1:
-        key_code_array_add(xsk_get_uinput_pressing_keys(xsk), event->code);
+        key_code_array_add(device->pressing_keys, event->code);
         break;
       }
       break;
     }
   }
-  xsk_set_uinput_last_event_type(xsk, event->type);
+  device->last_event_type = event->type;
   debug_print("Write to uinput : type=%02x code=%d value=%d",
               event->type,
               event->code,
               event->value);
   gettimeofday(&event->time, NULL);
-  return device_write(xsk_get_uinput_device(xsk), event, sizeof (*event));
+  return device_write(&device->device, event, sizeof (*event));
 }

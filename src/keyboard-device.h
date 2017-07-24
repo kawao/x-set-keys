@@ -23,8 +23,15 @@
 #include <linux/input.h>
 
 #include "x-set-keys.h"
+#include "device.h"
 
-Device *kd_initialize(XSetKeys *xsk, const gchar *device_filepath);
+typedef struct _KeyboardDevice {
+  Device device;
+  KeyCodeArray *pressing_keys;
+  struct timeval press_start_time;
+} KeyboardDevice;
+
+KeyboardDevice *kd_initialize(XSetKeys *xsk, const gchar *device_filepath);
 void kd_finalize(XSetKeys *xsk);
 
 #define KD_EV_BITS_LENGTH (EV_MAX/8 + 1)
@@ -35,7 +42,12 @@ gboolean kd_get_key_bits(XSetKeys *xsk, guint8 key_bits[]);
 
 #define kd_test_bit(array, bit) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
 
-#define kd_write(xsk, buffer, length)                               \
-  device_write(xsk_get_keyboard_device(xsk), (buffer), (length))
+#define kd_write(xsk, buffer, length)                                   \
+  device_write(&xsk_get_keyboard_device(xsk)->device, (buffer), (length))
+
+#define kd_get_pressing_keys(xsk)               \
+  (xsk_get_keyboard_device(xsk)->pressing_keys)
+#define kd_is_key_pressed(xsk, key_code)                            \
+  key_code_array_contains(kd_get_pressing_keys(xsk), (key_code))
 
 #endif  /* _KEYBOARD_DEVICE_H */

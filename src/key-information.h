@@ -76,4 +76,7 @@ gboolean ki_contains_modifier(const KeyInformation *key_info,
 #define ki_is_corsor(key_info, key_code)                                \
   ((key_info)->modifier_mask_or_key_kind[key_code] == KI_KIND_CURSOR)
 
+#define ki_is_valid_key_code(key_code)          \
+  ((key_code) > 0 && (key_code) < G_MAXUINT8)
+
 #endif /* _KEY_INFORMATION_H */

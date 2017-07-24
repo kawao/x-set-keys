@@ -32,6 +32,7 @@ static gboolean _dispatch(GSource *source,
 
 Device *device_initialize(gint fd,
                           const gchar *name,
+                          guint struct_size,
                           GSourceFunc callback,
                           gpointer user_data)
 {
@@ -41,7 +42,7 @@ Device *device_initialize(gint fd,
     _dispatch,
     NULL
   };
-  Device *device = (Device *)g_source_new(&event_funcs, sizeof (Device));
+  Device *device = (Device *)g_source_new(&event_funcs, struct_size);
 
   g_source_set_name(&device->source, name);
   device->poll_fd.fd = fd;

@@ -23,8 +23,15 @@
 #include <linux/input.h>
 
 #include "x-set-keys.h"
+#include "device.h"
 
-Device *ud_initialize(XSetKeys *xsk);
+typedef struct _UInputDevice {
+  Device device;
+  KeyCodeArray *pressing_keys;
+  guint16 last_event_type;
+} UInputDevice;
+
+UInputDevice *ud_initialize(XSetKeys *xsk);
 void ud_finalize(XSetKeys *xsk);
 
 gboolean ud_send_key_event(XSetKeys *xsk,
@@ -33,7 +40,9 @@ gboolean ud_send_key_event(XSetKeys *xsk,
                            gboolean is_temporary);
 gboolean ud_send_event(XSetKeys *xsk, struct input_event *event);
 
-#define ud_is_key_pressed(xsk, key_code)                                \
-  key_code_array_contains(xsk_get_uinput_pressing_keys(xsk), (key_code))
+#define ud_get_pressing_keys(xsk)               \
+  (xsk_get_uinput_device(xsk)->pressing_keys)
+#define ud_is_key_pressed(xsk, key_code)                            \
+  key_code_array_contains(ud_get_pressing_keys(xsk), (key_code))
 
 #endif  /* _UINPUT_DEVICE_H */

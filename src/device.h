@@ -29,6 +29,7 @@ typedef struct _Device {
 
 Device *device_initialize(gint fd,
                           const gchar *name,
+                          guint struct_size,
                           GSourceFunc callback,
                           gpointer user_data);
 void device_finalize(Device *device);

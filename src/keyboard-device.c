@@ -39,51 +39,59 @@ static gboolean _get_key_bits(gint fd, guint8 key_bits[]);
 static gboolean _handle_input(gpointer user_data);
 static gboolean _handle_event(XSetKeys *xsk, struct input_event *event);
 
-Device *kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
+KeyboardDevice *kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
 {
   gint fd;
-  Device *device;
+  KeyboardDevice *device;
 
   fd = _open_device_file(device_filepath);
   if (fd < 0) {
     return NULL;
   }
 
-  device = device_initialize(fd, "keyboard device", _handle_input, xsk);
-  if (!_initialize_keys(device)) {
-    device_finalize(device);
+  device = (KeyboardDevice *)device_initialize(fd,
+                                               "keyboard device",
+                                               sizeof (KeyboardDevice),
+                                               _handle_input,
+                                               xsk);
+  if (!_initialize_keys(&device->device)) {
+    device_finalize(&device->device);
     return NULL;
   }
   if (ioctl(fd, EVIOCGRAB, 1) < 0) {
     print_error("Failed to grab keyboard device");
-    device_finalize(device);
+    device_finalize(&device->device);
     return NULL;
   }
+  device->pressing_keys = key_code_array_new(6);
   return device;
 }
 
 void kd_finalize(XSetKeys *xsk)
 {
-  Device *device = xsk_get_keyboard_device(xsk);
+  KeyboardDevice *device = xsk_get_keyboard_device(xsk);
 
-  if (ioctl(device_get_fd(device), EVIOCGRAB, 0) < 0) {
+  if (ioctl(device_get_fd(&device->device), EVIOCGRAB, 0) < 0) {
     print_error("Failed to ungrab keyboard device");
   }
-  device_finalize(device);
+  if (device->pressing_keys) {
+    key_code_array_free(device->pressing_keys);
+  }
+  device_finalize(&device->device);
 }
 
 gboolean kd_get_ev_bits(XSetKeys *xsk, guint8 ev_bits[])
 {
-  Device *device = xsk_get_keyboard_device(xsk);
+  KeyboardDevice *device = xsk_get_keyboard_device(xsk);
 
-  return _get_ev_bits(device_get_fd(device), ev_bits);
+  return _get_ev_bits(device_get_fd(&device->device), ev_bits);
 }
 
 gboolean kd_get_key_bits(XSetKeys *xsk, guint8 key_bits[])
 {
-  Device *device = xsk_get_keyboard_device(xsk);
+  KeyboardDevice *device = xsk_get_keyboard_device(xsk);
 
-  return _get_key_bits(device_get_fd(device), key_bits);
+  return _get_key_bits(device_get_fd(&device->device), key_bits);
 }
 
 static gint _open_device_file(const gchar *device_filepath)
@@ -202,14 +210,14 @@ static gboolean _get_key_bits(gint fd, guint8 key_bits[])
 static gboolean _handle_input(gpointer user_data)
 {
   XSetKeys *xsk;
-  Device *device;
+  KeyboardDevice *device;
   gssize length;
   struct input_event event;
 
   xsk = user_data;
   device = xsk_get_keyboard_device(xsk);
 
-  length = device_read(device, &event, sizeof (event));
+  length = device_read(&device->device, &event, sizeof (event));
   if (length < 0) {
     return FALSE;
   }
@@ -229,6 +237,7 @@ static gboolean _handle_input(gpointer user_data)
 
 static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
 {
+  KeyboardDevice *device = xsk_get_keyboard_device(xsk);
   gint seconds_since_pressed;
 
   switch (event->type) {
@@ -238,16 +247,16 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
     }
     break;
   case EV_KEY:
-    if (!xsk_is_valid_key_code(event->code)) {
+    if (!ki_is_valid_key_code(event->code)) {
       break;
     }
     switch (event->value) {
     case 0:
-      key_code_array_remove(xsk_get_keyboard_pressing_keys(xsk), event->code);
+      key_code_array_remove(device->pressing_keys, event->code);
       break;
     case 1:
-      key_code_array_add(xsk_get_keyboard_pressing_keys(xsk), event->code);
-      xsk_set_key_press_start_time(xsk, event->time);
+      key_code_array_add(device->pressing_keys, event->code);
+      device->press_start_time = event->time;
       switch (xsk_handle_key_press(xsk, event->code)) {
       case XSK_INTERCEPTED:
         return TRUE;
@@ -258,8 +267,8 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
       }
       break;
     default:
-      seconds_since_pressed =
-        _elapsed_seconds(xsk_get_key_press_start_time(xsk), event->time);
+      seconds_since_pressed = _elapsed_seconds(device->press_start_time,
+                                               event->time);
       switch (xsk_handle_key_repeat(xsk, event->code, seconds_since_pressed)) {
       case XSK_INTERCEPTED:
         return TRUE;

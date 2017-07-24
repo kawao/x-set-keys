@@ -42,8 +42,6 @@ gboolean xsk_initialize(XSetKeys *xsk)
   }
   ki_initialize(xsk->display, &xsk->key_information);
   xsk->root_actions = action_list_new();
-  xsk->keyboard_pressing_keys = key_code_array_new(6);
-  xsk->uinput_pressing_keys = key_code_array_new(6);
   return TRUE;
 }
 
@@ -75,12 +73,6 @@ void xsk_finalize(XSetKeys *xsk)
   }
   if (xsk->root_actions) {
     action_list_free(xsk->root_actions);
-  }
-  if (xsk->keyboard_pressing_keys) {
-    key_code_array_free(xsk->keyboard_pressing_keys);
-  }
-  if (xsk->uinput_pressing_keys) {
-    key_code_array_free(xsk->uinput_pressing_keys);
   }
 }
 
@@ -145,7 +137,7 @@ gboolean xsk_send_key_events(XSetKeys *xsk, const KeyCodeArrayArray *key_arrays)
 {
   gint index;
 
-  if (!_send_regular_modifiers_event(xsk, xsk->uinput_pressing_keys, FALSE)) {
+  if (!_send_regular_modifiers_event(xsk, ud_get_pressing_keys(xsk), FALSE)) {
     return FALSE;
   }
   for (index = 0;
@@ -156,7 +148,7 @@ gboolean xsk_send_key_events(XSetKeys *xsk, const KeyCodeArrayArray *key_arrays)
       return FALSE;
     }
   }
-  if (!_send_regular_modifiers_event(xsk, xsk->uinput_pressing_keys, TRUE)) {
+  if (!_send_regular_modifiers_event(xsk, ud_get_pressing_keys(xsk), TRUE)) {
     return FALSE;
   }
   return TRUE;
@@ -173,7 +165,7 @@ static const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
 
   kc = ki_pressing_keys_to_key_combination(&xsk->key_information,
                                            key_code,
-                                           xsk->keyboard_pressing_keys);
+                                           kd_get_pressing_keys(xsk));
   return action_list_lookup(xsk->current_actions, &kc);
 }
 

@@ -25,19 +25,14 @@
 
 #include "key-information.h"
 #include "key-code-array.h"
-#include "device.h"
 
 typedef struct _XSetKeys {
   Display *display;
   KeyInformation key_information;
   gpointer root_actions;
   gpointer current_actions;
-  KeyCodeArray *keyboard_pressing_keys;
-  KeyCodeArray *uinput_pressing_keys;
-  Device *keyboard_device;
-  Device *uinput_device;
-  struct timeval key_press_start_time;
-  guint16 uinput_last_event_type;
+  struct _KeyboardDevice *keyboard_device;
+  struct _UInputDevice *uinput_device;
 } XSetKeys;
 
 typedef enum _XskResult {
@@ -62,21 +57,7 @@ gboolean xsk_send_key_events(XSetKeys *xsk,
 #define xsk_get_key_information(xsk) (&(xsk)->key_information)
 #define xsk_get_root_actions(xsk) ((xsk)->root_actions)
 
-#define xsk_get_keyboard_pressing_keys(xsk) ((xsk)->keyboard_pressing_keys)
-#define xsk_get_uinput_pressing_keys(xsk) ((xsk)->uinput_pressing_keys)
-
 #define xsk_get_keyboard_device(xsk) ((xsk)->keyboard_device)
 #define xsk_get_uinput_device(xsk) ((xsk)->uinput_device)
-
-#define xsk_get_key_press_start_time(xsk) ((xsk)->key_press_start_time)
-#define xsk_set_key_press_start_time(xsk, time) \
-  ((xsk)->key_press_start_time = (time))
-
-#define xsk_get_uinput_last_event_type(xsk) ((xsk)->uinput_last_event_type)
-#define xsk_set_uinput_last_event_type(xsk, type) \
-  ((xsk)->uinput_last_event_type = (type))
-
-#define xsk_is_valid_key_code(key_code) \
-  ((key_code) > 0 && (key_code) < G_MAXUINT8)
 
 #endif /* _X_SET_KEYS_H */
