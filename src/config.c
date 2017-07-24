@@ -21,6 +21,9 @@
 #include "config.h"
 #include "action.h"
 
+static gboolean _load(XSetKeys *xsk,
+                      KeyCombinationArray *inputs,
+                      KeyCodeArrayArray *outputs);
 static KeyCombination _create_key_combination(XSetKeys *xsk,
                                               const gchar *string);
 static KeyCodeArray *_create_key_code_array(XSetKeys *xsk, const gchar *string);
@@ -29,32 +32,20 @@ gboolean config_load(XSetKeys *xsk, gchar filepath[])
 {
   KeyCombinationArray *inputs = key_combination_array_new(6);
   KeyCodeArrayArray *outputs = key_code_array_array_new(6);
-  gboolean result;
-  KeyCombination kc;
 
-  kc = _create_key_combination(xsk, "C-m");
-  key_combination_array_add(inputs, kc);
-  key_code_array_array_add(outputs, _create_key_code_array(xsk, "Return"));
+  gboolean result = _load(xsk, inputs, outputs);
 
-  result = action_add_key_action(xsk, inputs, outputs);
-  g_warn_if_fail(result);
+  key_combination_array_free(inputs);
+  key_code_array_array_free(outputs);
 
-  key_combination_array_clear(inputs);
-  key_code_array_array_clear(outputs);
+  return result;
 
 #if 0
   key_combination_array_add(inputs, kc);
   key_code_array_array_add(outputs, _create_key_code_array(xsk, "Tab"));
   result = action_add_key_action(xsk, inputs, outputs);
   g_warn_if_fail(result);
-#endif
 
-  key_combination_array_free(inputs);
-  key_code_array_array_free(outputs);
-
- return TRUE;
-
-#if 0
   _create_key_combination(xsk, "C-A-Delete");
   _create_key_combination(xsk, "C-B-Delete");
   _create_key_combination(xsk, "C-M-Delete");
@@ -73,16 +64,69 @@ gboolean config_load(XSetKeys *xsk, gchar filepath[])
 #endif
 }
 
+static gboolean _load(XSetKeys *xsk,
+                      KeyCombinationArray *inputs,
+                      KeyCodeArrayArray *outputs)
+{
+  struct {
+    const gchar *inputs[4];
+    const gchar *outputs[4];
+  } commands[] = {
+    {{ "C-i" }, { "Tab" }},
+    {{ "A-i" }, { "S-Tab" }}
+  };
+
+  gint index;
+
+  for (index = 0; index < array_num(commands); index++) {
+    const gchar **pointer;
+
+    key_combination_array_clear(inputs);
+    key_code_array_array_clear(outputs);
+
+    for (pointer = commands[index].inputs; *pointer; pointer++) {
+      KeyCombination kc = _create_key_combination(xsk, *pointer);
+      key_combination_array_add(inputs, kc);
+    }
+
+    for (pointer = commands[index].outputs; *pointer; pointer++) {
+      key_code_array_array_add(outputs, _create_key_code_array(xsk, *pointer));
+    }
+
+    if (is_debug) {
+      GString *string = g_string_sized_new(32);
+
+      for (pointer = commands[index].inputs; *pointer; pointer++) {
+        g_string_append_c(string, ' ');
+        g_string_append(string, *pointer);
+      }
+      g_string_append(string, " ::");
+      for (pointer = commands[index].outputs; *pointer; pointer++) {
+        g_string_append_c(string, ' ');
+        g_string_append(string, *pointer);
+      }
+      debug_print("Registering: [%s ]", string->str);
+      g_string_free(string, TRUE);
+    }
+
+    g_return_val_if_fail(action_add_key_action(xsk, inputs, outputs), FALSE);
+  }
+
+  return FALSE;
+}
+
 static KeyCombination _create_key_combination(XSetKeys *xsk,
                                               const gchar *string)
 {
   KeyCombination kc = ki_string_to_key_combination(xsk_get_display(xsk),
                                                    xsk_get_key_information(xsk),
                                                    string);
+#if 0
   debug_print("%s: key_code=%d modifiers=%x",
               string,
               kc.s.key_code,
               kc.s.modifiers);
+#endif
   return kc;
 }
 
@@ -106,7 +150,6 @@ static KeyCodeArray *_create_key_code_array(XSetKeys *xsk, const gchar *string)
     debug_print("%s: [%s]", string, text->str);
 
     g_string_free(text, TRUE);
-    key_code_array_free(array);
   } else {
     debug_print("%s: NULL", string);
   }
