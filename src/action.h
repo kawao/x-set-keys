@@ -22,13 +22,13 @@
 
 #include "x-set-keys.h"
 
-typedef enum _ActionType {
+typedef enum ActionType_ {
   ACTION_TYPE_KEY_EVENTS,
   ACTION_TYPE_MULTI_STROKE,
   ACTION_TYPE_START_SELECTION
 } ActionType;
 
-typedef struct _Action {
+typedef struct Action_ {
   ActionType type;
   gboolean (*run)(XSetKeys *xsk, gconstpointer data);
   void (*free_data)(gpointer data);

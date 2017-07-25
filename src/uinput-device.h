@@ -25,7 +25,7 @@
 #include "x-set-keys.h"
 #include "device.h"
 
-typedef struct _UInputDevice {
+typedef struct UInputDevice_ {
   Device device;
   KeyCodeArray *pressing_keys;
   guint16 last_event_type;

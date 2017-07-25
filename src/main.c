@@ -28,7 +28,7 @@
 #include "x-set-keys.h"
 #include "config.h"
 
-typedef struct __Option {
+typedef struct _Option_ {
   gchar *config_filepath;
   gchar *device_filepath;
 } _Option;

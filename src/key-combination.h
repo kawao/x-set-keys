@@ -25,7 +25,7 @@
 
 #include "key-information.h"
 
-typedef union _KeyCombination {
+typedef union KeyCombination_ {
   guint16 i;
   struct __KeyCombination {
     guint8 key_code;

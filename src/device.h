@@ -22,7 +22,7 @@
 
 #include "glib.h"
 
-typedef struct _Device {
+typedef struct Device_ {
   GSource source;
   GPollFD poll_fd;
 } Device;

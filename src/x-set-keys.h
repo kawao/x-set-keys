@@ -26,16 +26,16 @@
 #include "key-information.h"
 #include "key-code-array.h"
 
-typedef struct _XSetKeys {
+typedef struct XSetKeys_ {
   Display *display;
   KeyInformation key_information;
   gpointer root_actions;
   gpointer current_actions;
-  struct _KeyboardDevice *keyboard_device;
-  struct _UInputDevice *uinput_device;
+  struct KeyboardDevice_ *keyboard_device;
+  struct UInputDevice_ *uinput_device;
 } XSetKeys;
 
-typedef enum _XskResult {
+typedef enum XskResult {
   XSK_PASSING_BY,
   XSK_INTERCEPTED,
   XSK_ERROR

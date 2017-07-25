@@ -25,7 +25,7 @@
 #include "x-set-keys.h"
 #include "device.h"
 
-typedef struct _KeyboardDevice {
+typedef struct KeyboardDevice_ {
   Device device;
   KeyCodeArray *pressing_keys;
   struct timeval press_start_time;

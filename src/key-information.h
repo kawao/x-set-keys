@@ -26,7 +26,7 @@
 #include "key-combination.h"
 #include "key-code-array.h"
 
-typedef enum _KIModifier {
+typedef enum KIModifier_ {
   KI_MODIFIER_ALT = 0,
   KI_MODIFIER_CONTROL = 1,
   KI_MODIFIER_HYPER = 2,
@@ -40,7 +40,7 @@ typedef enum _KIModifier {
 #define KI_KIND_MODIFIER_OTHER (1 << KI_MODIFIER_OTHER)
 #define KI_KIND_CURSOR (KI_KIND_MODIFIER_OTHER + 1)
 
-typedef struct _KeyInformation {
+typedef struct KeyInformation_ {
   KeyCode modifier_key_code[KI_NUM_MODIFIER];
   guchar modifier_mask_or_key_kind[G_MAXUINT8];
 } KeyInformation;
