@@ -21,6 +21,20 @@
 #include "action.h"
 #include "key-combination.h"
 
+#define _list_new()                                                     \
+  g_tree_new_full(_compare_key_combination, NULL, g_free, _free_action)
+#define _list_free(list) g_tree_destroy(list)
+#define _list_insert(list, key_combination, action)                     \
+  g_tree_insert((list),                                                 \
+                g_memdup(&(key_combination), sizeof (KeyCombination)),   \
+                (action))
+#define _list_lookup(list, key_combination) \
+  g_tree_lookup((list), &(key_combination))
+
+static void _free_action(gpointer action);
+static gint _compare_key_combination(gconstpointer a,
+                                     gconstpointer b,
+                                     gpointer user_data);
 static gboolean _add_action(ActionList *action_list,
                             const KeyCombination input_keys[],
                             guint num_input_keys,
@@ -28,9 +42,19 @@ static gboolean _add_action(ActionList *action_list,
 static gboolean _send_key_events(XSetKeys *xsk, gconstpointer data);
 static void _free_key_code_array_array(gpointer data);
 
-gboolean action_add_key_action(XSetKeys *xsk,
-                               const KeyCombinationArray *input_keys,
-                               KeyCodeArrayArray *output_keys)
+ActionList *action_list_new()
+{
+  return _list_new();
+}
+
+void action_list_free(ActionList *action_list)
+{
+  return _list_free(action_list);
+}
+
+gboolean action_list_add_key_action(ActionList *actions_list,
+                                    const KeyCombinationArray *input_keys,
+                                    KeyCodeArrayArray *output_keys)
 {
   Action *action;
 
@@ -39,17 +63,23 @@ gboolean action_add_key_action(XSetKeys *xsk,
   action->run = _send_key_events;
   action->free_data = _free_key_code_array_array;
   action->data = key_code_array_array_deprive(output_keys);
-  if (!_add_action(xsk_get_root_actions(xsk),
+  if (!_add_action(actions_list,
                    &key_combination_array_get_at(input_keys, 0),
                    key_combination_array_get_length(input_keys),
                    action)) {
-    action_free(action);
+    _free_action(action);
     return FALSE;
   }
   return TRUE;
 }
 
-void action_free(gpointer action_)
+const Action *action_list_lookup(const ActionList *action_list,
+                                 KeyCombination key_combination)
+{
+  return action_list_lookup(action_list, key_combination);
+}
+
+static void _free_action(gpointer action_)
 {
   Action *action = action_;
 
@@ -57,9 +87,9 @@ void action_free(gpointer action_)
   g_free(action);
 }
 
-gint action_compare_key_combination(gconstpointer a,
-                                    gconstpointer b,
-                                    gpointer user_data)
+static gint _compare_key_combination(gconstpointer a,
+                                     gconstpointer b,
+                                     gpointer user_data)
 {
   return key_combination_compare(*(const KeyCombination *)a,
                                  *(const KeyCombination *)b);
@@ -71,11 +101,11 @@ static gboolean _add_action(ActionList *action_list,
                             Action *action)
 {
   if (num_input_keys == 1) {
-    if (action_list_lookup(action_list, input_keys)) {
+    if (_list_lookup(action_list, input_keys)) {
       g_critical("Duplicate input");
       return FALSE;
     }
-    action_list_insert(action_list, input_keys, action);
+    _list_insert(action_list, *input_keys, action);
   } else {
     g_warn_if_reached();
     return TRUE;

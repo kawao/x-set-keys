@@ -166,7 +166,7 @@ static const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)
   kc = ki_pressing_keys_to_key_combination(&xsk->key_information,
                                            key_code,
                                            kd_get_pressing_keys(xsk));
-  return action_list_lookup(xsk->current_actions, &kc);
+  return action_list_lookup(xsk->current_actions, kc);
 }
 
 static gboolean _send_regular_modifiers_event(XSetKeys *xsk,

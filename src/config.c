@@ -77,6 +77,7 @@ static gboolean _load(XSetKeys *xsk,
   };
 
   gint index;
+  gboolean result;
 
   for (index = 0; index < array_num(commands); index++) {
     const gchar **pointer;
@@ -109,7 +110,10 @@ static gboolean _load(XSetKeys *xsk,
       g_string_free(string, TRUE);
     }
 
-    g_return_val_if_fail(action_add_key_action(xsk, inputs, outputs), FALSE);
+    result = action_list_add_key_action(xsk_get_root_actions(xsk),
+                                        inputs,
+                                        outputs);
+    g_return_val_if_fail(result, FALSE);
   }
 
   return FALSE;

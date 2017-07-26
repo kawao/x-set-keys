@@ -35,25 +35,14 @@ typedef struct Action_ {
   gpointer data;
 } Action;
 
-gboolean action_add_key_action(XSetKeys *xsk,
-                               const KeyCombinationArray *input_keys,
-                               KeyCodeArrayArray *output_keys);
-
 typedef GTree ActionList;
 
-void action_free(gpointer action);
-gint action_compare_key_combination(gconstpointer a,
-                                    gconstpointer b,
-                                    gpointer user_data);
-
-#define action_list_new()                                               \
-  g_tree_new_full(action_compare_key_combination, NULL, g_free, action_free)
-#define action_list_free(list) g_tree_destroy(list)
-#define action_list_insert(list, key_combination, action)               \
-  g_tree_insert((list),                                                 \
-                g_memdup((key_combination), sizeof (KeyCombination)),   \
-                (action))
-#define action_list_lookup(list, key_combination)   \
-  g_tree_lookup((list), (key_combination))
+ActionList *action_list_new();
+void action_list_free(ActionList *action_list);
+gboolean action_list_add_key_action(ActionList *actions_list,
+                                    const KeyCombinationArray *input_keys,
+                                    KeyCodeArrayArray *output_keys);
+const Action *action_list_lookup(const ActionList *action_list,
+                                 KeyCombination key_combination);
 
 #endif /* _ACTION_H */
