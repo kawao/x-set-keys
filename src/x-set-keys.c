@@ -81,12 +81,12 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
   const Action *action;
 
   if (_is_disabled(xsk)) {
-    return XSK_PASSING_BY;
+    return XSK_UNCONSUMED;
   }
   action = _lookup_action(xsk, key_code);
   if (action) {
     _reset_current_actions(xsk);
-    return action->run(xsk, action->data) ? XSK_INTERCEPTED : XSK_ERROR;
+    return action->run(xsk, action->data) ? XSK_CONSUMED : XSK_FAILED;
   }
   if (!ki_is_modifier(&xsk->key_information, key_code)) {
     if (xsk->current_actions != xsk->root_actions) {
@@ -94,7 +94,7 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
       g_warning("Key sequence canceled");
     }
   }
-  return XSK_PASSING_BY;
+  return XSK_UNCONSUMED;
 }
 
 XskResult xsk_handle_key_repeat(XSetKeys *xsk,
@@ -106,31 +106,31 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
 
   if (ud_is_key_pressed(xsk, key_code)) {
     if (_is_disabled(xsk)) {
-      return XSK_PASSING_BY;
+      return XSK_UNCONSUMED;
     }
     action = _lookup_action(xsk, key_code);
     if (!action) {
-      return XSK_PASSING_BY;
+      return XSK_UNCONSUMED;
     }
     if (!seconds_since_pressed) {
-      return XSK_INTERCEPTED;
+      return XSK_CONSUMED;
     }
     if (!ud_send_key_event(xsk, key_code, FALSE, FALSE)) {
-      return XSK_ERROR;
+      return XSK_FAILED;
     }
     _reset_current_actions(xsk);
-    return action->run(xsk, action->data) ? XSK_INTERCEPTED : XSK_ERROR;
+    return action->run(xsk, action->data) ? XSK_CONSUMED : XSK_FAILED;
   }
 
   if (!seconds_since_pressed) {
-    return XSK_INTERCEPTED;
+    return XSK_CONSUMED;
   }
   result = xsk_handle_key_press(xsk, key_code);
-  if (result != XSK_PASSING_BY) {
+  if (result != XSK_UNCONSUMED) {
     return result;
   }
   return ud_send_key_event(xsk, key_code, TRUE, FALSE)
-    ? XSK_INTERCEPTED : XSK_ERROR;
+    ? XSK_CONSUMED : XSK_FAILED;
 }
 
 gboolean xsk_send_key_events(XSetKeys *xsk, const KeyCodeArrayArray *key_arrays)

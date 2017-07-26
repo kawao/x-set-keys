@@ -35,10 +35,10 @@ typedef struct XSetKeys_ {
   struct UInputDevice_ *uinput_device;
 } XSetKeys;
 
-typedef enum XskResult {
-  XSK_PASSING_BY,
-  XSK_INTERCEPTED,
-  XSK_ERROR
+typedef enum XskResult_ {
+  XSK_CONSUMED,
+  XSK_UNCONSUMED,
+  XSK_FAILED
 } XskResult;
 
 gboolean xsk_initialize(XSetKeys *xsk);

@@ -258,9 +258,9 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
       key_code_array_add(device->pressing_keys, event->code);
       device->press_start_time = event->time;
       switch (xsk_handle_key_press(xsk, event->code)) {
-      case XSK_INTERCEPTED:
+      case XSK_CONSUMED:
         return TRUE;
-      case XSK_ERROR:
+      case XSK_FAILED:
         return FALSE;
       default:
         break;
@@ -270,9 +270,9 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
       seconds_since_pressed = _elapsed_seconds(device->press_start_time,
                                                event->time);
       switch (xsk_handle_key_repeat(xsk, event->code, seconds_since_pressed)) {
-      case XSK_INTERCEPTED:
+      case XSK_CONSUMED:
         return TRUE;
-      case XSK_ERROR:
+      case XSK_FAILED:
         return FALSE;
       default:
         break;
