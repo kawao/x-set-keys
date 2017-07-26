@@ -53,10 +53,8 @@ gboolean xsk_send_key_events(XSetKeys *xsk,
                              const KeyCodeArrayArray *key_arrays);
 
 #define xsk_get_display(xsk) ((xsk)->display)
-
 #define xsk_get_key_information(xsk) (&(xsk)->key_information)
 #define xsk_get_root_actions(xsk) ((xsk)->root_actions)
-
 #define xsk_get_keyboard_device(xsk) ((xsk)->keyboard_device)
 #define xsk_get_uinput_device(xsk) ((xsk)->uinput_device)
 
