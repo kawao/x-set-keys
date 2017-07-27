@@ -25,12 +25,13 @@
 
 #include "key-information.h"
 #include "key-code-array.h"
+#include "action.h"
 
 typedef struct XSetKeys_ {
   Display *display;
   KeyInformation key_information;
-  gpointer root_actions;
-  gpointer current_actions;
+  ActionList *root_actions;
+  const ActionList *current_actions;
   struct KeyboardDevice_ *keyboard_device;
   struct UInputDevice_ *uinput_device;
 } XSetKeys;

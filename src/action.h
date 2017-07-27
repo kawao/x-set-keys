@@ -20,7 +20,8 @@
 #ifndef _ACTION_H
 #define _ACTION_H
 
-#include "x-set-keys.h"
+#include "key-combination.h"
+#include "key-code-array.h"
 
 typedef enum ActionType_ {
   ACTION_TYPE_KEY_EVENTS,
@@ -28,9 +29,11 @@ typedef enum ActionType_ {
   ACTION_TYPE_START_SELECTION
 } ActionType;
 
+struct XSetKeys_;
+
 typedef struct Action_ {
   ActionType type;
-  gboolean (*run)(XSetKeys *xsk, gconstpointer data);
+  gboolean (*run)(struct XSetKeys_ *xsk, gconstpointer data);
   void (*free_data)(gpointer data);
   gpointer data;
 } Action;

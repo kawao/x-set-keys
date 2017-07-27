@@ -18,8 +18,7 @@
  ***************************************************************************/
 
 #include "common.h"
-#include "action.h"
-#include "key-combination.h"
+#include "x-set-keys.h"
 
 #define _list_new()                                                     \
   g_tree_new_full(_compare_key_combination, NULL, g_free, _free_action)
