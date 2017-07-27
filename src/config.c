@@ -116,7 +116,7 @@ static gboolean _load(XSetKeys *xsk,
     g_return_val_if_fail(result, FALSE);
   }
 
-  return FALSE;
+  return TRUE;
 }
 
 static KeyCombination _create_key_combination(XSetKeys *xsk,
