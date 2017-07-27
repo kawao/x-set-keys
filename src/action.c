@@ -72,10 +72,10 @@ gboolean action_list_add_key_action(ActionList *actions_list,
   return TRUE;
 }
 
-const Action *action_list_lookup(const ActionList *action_list,
+const Action *action_list_lookup(ActionList *action_list,
                                  KeyCombination key_combination)
 {
-  return action_list_lookup(action_list, key_combination);
+  return _list_lookup(action_list, key_combination);
 }
 
 static void _free_action(gpointer action_)

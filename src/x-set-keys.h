@@ -31,7 +31,7 @@ typedef struct XSetKeys_ {
   Display *display;
   KeyInformation key_information;
   ActionList *root_actions;
-  const ActionList *current_actions;
+  ActionList *current_actions;
   struct KeyboardDevice_ *keyboard_device;
   struct UInputDevice_ *uinput_device;
 } XSetKeys;

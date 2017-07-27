@@ -45,7 +45,7 @@ void action_list_free(ActionList *action_list);
 gboolean action_list_add_key_action(ActionList *actions_list,
                                     const KeyCombinationArray *input_keys,
                                     KeyCodeArrayArray *output_keys);
-const Action *action_list_lookup(const ActionList *action_list,
+const Action *action_list_lookup(ActionList *action_list,
                                  KeyCombination key_combination);
 
 #endif /* _ACTION_H */
