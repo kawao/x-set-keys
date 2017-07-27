@@ -38,8 +38,10 @@ static gboolean _add_action(ActionList *action_list,
                             const KeyCombination input_keys[],
                             guint num_input_keys,
                             Action *action);
-static gboolean _send_key_events(XSetKeys *xsk, gconstpointer data);
-static void _free_key_code_array_array(gpointer data);
+static gboolean _send_key_events(XSetKeys *xsk, const Action *action);
+static void _free_key_arrays(Action *action);
+static gboolean _set_current_actions(XSetKeys *xsk, const Action *action);
+static void _free_action_list(Action *action);
 
 ActionList *action_list_new()
 {
@@ -60,8 +62,8 @@ gboolean action_list_add_key_action(ActionList *actions_list,
   action = g_new(Action, 1);
   action->type = ACTION_TYPE_KEY_EVENTS;
   action->run = _send_key_events;
-  action->free_data = _free_key_code_array_array;
-  action->data = key_code_array_array_deprive(output_keys);
+  action->free_data = _free_key_arrays;
+  action->data.key_arrays = key_code_array_array_deprive(output_keys);
   if (!_add_action(actions_list,
                    &key_combination_array_get_at(input_keys, 0),
                    key_combination_array_get_length(input_keys),
@@ -72,17 +74,17 @@ gboolean action_list_add_key_action(ActionList *actions_list,
   return TRUE;
 }
 
-const Action *action_list_lookup(ActionList *action_list,
+const Action *action_list_lookup(const ActionList *action_list,
                                  KeyCombination key_combination)
 {
-  return _list_lookup(action_list, key_combination);
+  return _list_lookup((ActionList *)action_list, key_combination);
 }
 
 static void _free_action(gpointer action_)
 {
   Action *action = action_;
 
-  action->free_data(action->data);
+  action->free_data(action);
   g_free(action);
 }
 
@@ -106,31 +108,32 @@ static gboolean _add_action(ActionList *action_list,
     }
     _list_insert(action_list, *input_keys, action);
   } else {
-    g_warn_if_reached();
-    return TRUE;
-    /*
-    nested_action = actionlist_lookup(action_list, input_keys);
-    if (!nested_action) {
-      nested_action = create_nested_action();
-      actionlist_insert(action_list, input_keys, nested_action);
-    } else if (!nested_action.type != NESTED) {
-      g_critical("duplicate input");
+    Action *parent_action = _list_lookup(action_list, *input_keys);
+
+    if (!parent_action) {
+      parent_action = g_new(Action, 1);
+      parent_action->type = ACTION_TYPE_MULTI_STROKE;
+      parent_action->run = _set_current_actions;
+      parent_action->free_data = _free_action_list;
+      parent_action->data.action_list = _list_new();
+      _list_insert(action_list, *input_keys, parent_action);
+    } else if (parent_action->type != ACTION_TYPE_MULTI_STROKE) {
+      g_critical("Duplicate input");
       return FALSE;
     }
-    if (!add_action(nested_action->action_list,
-                    &input_keys[1],
-                    num_input - 1,
-                    action) {
-       return FALSE;
+    if (!_add_action(parent_action->data.action_list,
+                     input_keys + 1,
+                     num_input_keys - 1,
+                     action)) {
+      return FALSE;
     }
-     */
   }
   return TRUE;
 }
 
-static gboolean _send_key_events(XSetKeys *xsk, gconstpointer data)
+static gboolean _send_key_events(XSetKeys *xsk, const Action *action)
 {
-  const KeyCodeArrayArray *key_arrays = data;
+  const KeyCodeArrayArray *key_arrays = action->data.key_arrays;
 
   if (!key_code_array_array_get_length(key_arrays)) {
     debug_print("Empty key action");
@@ -141,7 +144,19 @@ static gboolean _send_key_events(XSetKeys *xsk, gconstpointer data)
   return xsk_send_key_events(xsk, key_arrays);
 }
 
-static void _free_key_code_array_array(gpointer data)
+static void _free_key_arrays(Action *action)
 {
-  key_code_array_array_free(data);
+  key_code_array_array_free(action->data.key_arrays);
+}
+
+static gboolean _set_current_actions(XSetKeys *xsk, const Action *action)
+{
+  debug_print("Multi stroke action");
+  xsk_set_current_actions(xsk, action->data.action_list);
+  return TRUE;
+}
+
+static void _free_action_list(Action *action)
+{
+  _list_free(action->data.action_list);
 }

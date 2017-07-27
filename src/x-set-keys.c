@@ -86,7 +86,7 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
   action = _lookup_action(xsk, key_code);
   if (action) {
     _reset_current_actions(xsk);
-    return action->run(xsk, action->data) ? XSK_CONSUMED : XSK_FAILED;
+    return action->run(xsk, action) ? XSK_CONSUMED : XSK_FAILED;
   }
   if (!ki_is_modifier(&xsk->key_information, key_code)) {
     if (xsk->current_actions != xsk->root_actions) {
@@ -119,7 +119,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
       return XSK_FAILED;
     }
     _reset_current_actions(xsk);
-    return action->run(xsk, action->data) ? XSK_CONSUMED : XSK_FAILED;
+    return action->run(xsk, action) ? XSK_CONSUMED : XSK_FAILED;
   }
 
   if (!seconds_since_pressed) {

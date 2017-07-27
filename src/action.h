@@ -23,29 +23,32 @@
 #include "key-combination.h"
 #include "key-code-array.h"
 
+struct XSetKeys_;
+
+typedef GTree ActionList;
+
 typedef enum ActionType_ {
   ACTION_TYPE_KEY_EVENTS,
   ACTION_TYPE_MULTI_STROKE,
   ACTION_TYPE_START_SELECTION
 } ActionType;
 
-struct XSetKeys_;
-
 typedef struct Action_ {
   ActionType type;
-  gboolean (*run)(struct XSetKeys_ *xsk, gconstpointer data);
-  void (*free_data)(gpointer data);
-  gpointer data;
+  gboolean (*run)(struct XSetKeys_ *xsk, const struct Action_ *action);
+  void (*free_data)(struct Action_ *action);
+  union ActionData_ {
+    KeyCodeArrayArray *key_arrays;
+    ActionList *action_list;
+  } data;
 } Action;
-
-typedef GTree ActionList;
 
 ActionList *action_list_new();
 void action_list_free(ActionList *action_list);
 gboolean action_list_add_key_action(ActionList *actions_list,
                                     const KeyCombinationArray *input_keys,
                                     KeyCodeArrayArray *output_keys);
-const Action *action_list_lookup(ActionList *action_list,
+const Action *action_list_lookup(const ActionList *action_list,
                                  KeyCombination key_combination);
 
 #endif /* _ACTION_H */

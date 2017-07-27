@@ -31,7 +31,7 @@ typedef struct XSetKeys_ {
   Display *display;
   KeyInformation key_information;
   ActionList *root_actions;
-  ActionList *current_actions;
+  const ActionList *current_actions;
   struct KeyboardDevice_ *keyboard_device;
   struct UInputDevice_ *uinput_device;
 } XSetKeys;
@@ -58,5 +58,8 @@ gboolean xsk_send_key_events(XSetKeys *xsk,
 #define xsk_get_root_actions(xsk) ((xsk)->root_actions)
 #define xsk_get_keyboard_device(xsk) ((xsk)->keyboard_device)
 #define xsk_get_uinput_device(xsk) ((xsk)->uinput_device)
+
+#define xsk_set_current_actions(xsk, actions)   \
+  ((xsk)->current_actions = (actions))
 
 #endif /* _X_SET_KEYS_H */
