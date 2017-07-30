@@ -42,6 +42,7 @@ static gboolean _send_key_events(XSetKeys *xsk, const Action *action);
 static void _free_key_arrays(Action *action);
 static gboolean _set_current_actions(XSetKeys *xsk, const Action *action);
 static void _free_action_list(Action *action);
+static gboolean _toggle_selection_mode(XSetKeys *xsk, const Action *action);
 
 ActionList *action_list_new()
 {
@@ -74,6 +75,25 @@ gboolean action_list_add_key_action(ActionList *actions_list,
   return TRUE;
 }
 
+gboolean action_list_add_select_action(ActionList *actions_list,
+                                       const KeyCombinationArray *input_keys)
+{
+  Action *action;
+
+  action = g_new(Action, 1);
+  action->type = ACTION_TYPE_SELECTION;
+  action->run = _toggle_selection_mode;
+  action->free_data = NULL;
+  if (!_add_action(actions_list,
+                   &key_combination_array_get_at(input_keys, 0),
+                   key_combination_array_get_length(input_keys),
+                   action)) {
+    _free_action(action);
+    return FALSE;
+  }
+  return TRUE;
+}
+
 const Action *action_list_lookup(const ActionList *action_list,
                                  KeyCombination key_combination)
 {
@@ -84,7 +104,9 @@ static void _free_action(gpointer action_)
 {
   Action *action = action_;
 
-  action->free_data(action);
+  if (action->free_data) {
+    action->free_data(action);
+  }
   g_free(action);
 }
 
@@ -159,4 +181,10 @@ static gboolean _set_current_actions(XSetKeys *xsk, const Action *action)
 static void _free_action_list(Action *action)
 {
   _list_free(action->data.action_list);
+}
+
+static gboolean _toggle_selection_mode(XSetKeys *xsk, const Action *action)
+{
+  xsk_toggle_selection_mode(xsk);
+  return TRUE;
 }

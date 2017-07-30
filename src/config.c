@@ -111,6 +111,7 @@ static gboolean _load(XSetKeys *xsk,
 
   gint index;
   gboolean result;
+  KeyCombination kc;
 
   for (index = 0; index < array_num(commands); index++) {
     const gchar **pointer;
@@ -119,7 +120,7 @@ static gboolean _load(XSetKeys *xsk,
     key_code_array_array_clear(outputs);
 
     for (pointer = commands[index].inputs; *pointer; pointer++) {
-      KeyCombination kc = _create_key_combination(xsk, *pointer);
+      kc = _create_key_combination(xsk, *pointer);
       key_combination_array_add(inputs, kc);
     }
 
@@ -148,6 +149,12 @@ static gboolean _load(XSetKeys *xsk,
                                         outputs);
     g_return_val_if_fail(result, FALSE);
   }
+
+  key_combination_array_clear(inputs);
+  kc = _create_key_combination(xsk, "C-space");
+  key_combination_array_add(inputs, kc);
+  debug_print("Registering: [ C-space :: $selection ]");
+  result = action_list_add_select_action(xsk_get_root_actions(xsk), inputs);
 
   return TRUE;
 }

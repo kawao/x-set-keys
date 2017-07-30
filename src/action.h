@@ -30,7 +30,7 @@ typedef GTree ActionList;
 typedef enum ActionType_ {
   ACTION_TYPE_KEY_EVENTS,
   ACTION_TYPE_MULTI_STROKE,
-  ACTION_TYPE_START_SELECTION
+  ACTION_TYPE_SELECTION
 } ActionType;
 
 typedef struct Action_ {
@@ -48,6 +48,8 @@ void action_list_free(ActionList *action_list);
 gboolean action_list_add_key_action(ActionList *actions_list,
                                     const KeyCombinationArray *input_keys,
                                     KeyCodeArrayArray *output_keys);
+gboolean action_list_add_select_action(ActionList *actions_list,
+                                       const KeyCombinationArray *input_keys);
 const Action *action_list_lookup(const ActionList *action_list,
                                  KeyCombination key_combination);
 
