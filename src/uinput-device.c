@@ -242,10 +242,13 @@ static gboolean _send_event(XSetKeys *xsk,
     }
   }
   device->last_event_type = event->type;
+  gettimeofday(&event->time, NULL);
+
+#ifdef TRACE
   debug_print("Write to uinput : type=%02x code=%d value=%d",
               event->type,
               event->code,
               event->value);
-  gettimeofday(&event->time, NULL);
+#endif
   return device_write(&device->device, event, sizeof (*event));
 }

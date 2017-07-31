@@ -228,10 +228,12 @@ static gboolean _handle_input(gpointer user_data)
     return FALSE;
   }
 
+#ifdef TRACE
   debug_print("Read from keyboard : type=%02x code=%d value=%d",
               event.type,
               event.code,
               event.value);
+#endif
   return _handle_event(xsk, &event);
 }
 
