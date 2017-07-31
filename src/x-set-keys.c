@@ -19,14 +19,15 @@
 
 #include "common.h"
 #include "x-set-keys.h"
+#include "window-system.h"
 #include "action.h"
 #include "keyboard-device.h"
 #include "uinput-device.h"
 
+#define _is_disabled(xsk) window_system_is_excluded(xsk)
 #define _reset_current_actions(xsk)                 \
   ((xsk)->current_actions = (xsk)->root_actions)
 
-static gboolean _is_disabled(XSetKeys *xsk);
 static const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code);
 static XskResult _key_pressed_on_selection_mode(XSetKeys *xsk,
                                                 KeyCode key_code);
@@ -41,7 +42,7 @@ _adds_shift_on_selection_mode(XSetKeys *xsk,
                               const KeyCodeArray *pressing_keys);
 static gboolean _send_key_events(XSetKeys *xsk, const KeyCode *keys);
 
-gboolean xsk_initialize(XSetKeys *xsk)
+gboolean xsk_initialize(XSetKeys *xsk, gchar *excluded_classes[])
 {
   xsk->display = XOpenDisplay(NULL);
   if (!xsk->display) {
@@ -49,6 +50,10 @@ gboolean xsk_initialize(XSetKeys *xsk)
     return FALSE;
   }
   ki_initialize(xsk->display, &xsk->key_information);
+  xsk->window_system = window_system_initialize(xsk, excluded_classes);
+  if (!xsk->window_system) {
+    return FALSE;
+  }
   xsk->root_actions = action_list_new();
   return TRUE;
 }
@@ -76,6 +81,7 @@ void xsk_finalize(XSetKeys *xsk)
     kd_finalize(xsk);
   }
   if (xsk->display) {
+    window_system_finalize(xsk);
     ki_finalize(&xsk->key_information);
     XCloseDisplay(xsk->display);
   }
@@ -189,9 +195,10 @@ void xsk_toggle_selection_mode(XSetKeys *xsk)
   xsk->is_selection_mode = !xsk->is_selection_mode;
 }
 
-gboolean _is_disabled(XSetKeys *xsk)
+void xsk_reset_state(XSetKeys *xsk)
 {
-  return FALSE;
+  _reset_current_actions(xsk);
+  xsk->is_selection_mode = FALSE;
 }
 
 static const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)

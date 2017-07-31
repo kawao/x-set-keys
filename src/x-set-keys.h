@@ -30,6 +30,7 @@
 typedef struct XSetKeys_ {
   Display *display;
   KeyInformation key_information;
+  struct WindowSystem_ *window_system;
   ActionList *root_actions;
   const ActionList *current_actions;
   struct KeyboardDevice_ *keyboard_device;
@@ -43,7 +44,7 @@ typedef enum XskResult_ {
   XSK_FAILED
 } XskResult;
 
-gboolean xsk_initialize(XSetKeys *xsk);
+gboolean xsk_initialize(XSetKeys *xsk, gchar *excluded_classes[]);
 gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath);
 void xsk_finalize(XSetKeys *xsk);
 
@@ -54,9 +55,11 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
 gboolean xsk_send_key_events(XSetKeys *xsk,
                              const KeyCodeArrayArray *key_arrays);
 void xsk_toggle_selection_mode(XSetKeys *xsk);
+void xsk_reset_state(XSetKeys *xsk);
 
 #define xsk_get_display(xsk) ((xsk)->display)
 #define xsk_get_key_information(xsk) (&(xsk)->key_information)
+#define xsk_get_window_system(xsk) ((xsk)->window_system)
 #define xsk_get_root_actions(xsk) ((xsk)->root_actions)
 #define xsk_get_keyboard_device(xsk) ((xsk)->keyboard_device)
 #define xsk_get_uinput_device(xsk) ((xsk)->uinput_device)

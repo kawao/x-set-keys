@@ -31,6 +31,7 @@
 typedef struct _Option_ {
   gchar *config_filepath;
   gchar *device_filepath;
+  gchar **excluded_classes;
 } _Option;
 
 static volatile gboolean _caught_sigint = FALSE;
@@ -58,6 +59,13 @@ gint main(gint argc, const gchar *argv[])
 
   XSetErrorHandler(_handle_x_error);
   XSetIOErrorHandler(_handle_xio_error);
+
+  {
+    static gchar *excluded_classes[] = {
+      "emacs", "Gnome-terminal", NULL
+    };
+    option.excluded_classes = excluded_classes;
+  }
 
   while (_run(&option)) {
     if (_error_occurred) {
@@ -119,7 +127,7 @@ static gboolean _run(const _Option *option)
   gboolean result = TRUE;
   XSetKeys xsk = { 0 };
 
-  if (!xsk_initialize(&xsk)) {
+  if (!xsk_initialize(&xsk, option->excluded_classes)) {
     _error_occurred = TRUE;
   } else if (!config_load(&xsk, option->config_filepath)) {
     _error_occurred = TRUE;
