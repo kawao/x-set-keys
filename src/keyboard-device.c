@@ -77,6 +77,7 @@ void kd_finalize(XSetKeys *xsk)
   if (device->pressing_keys) {
     key_code_array_free(device->pressing_keys);
   }
+  device_close(&device->device);
   device_finalize(&device->device);
 }
 

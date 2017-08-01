@@ -46,7 +46,6 @@ typedef struct KeyInformation_ {
 } KeyInformation;
 
 void ki_initialize(Display *display, KeyInformation *key_info);
-void ki_finalize(KeyInformation *key_info);
 
 KeyCombination
 ki_pressing_keys_to_key_combination(const KeyInformation *key_info,

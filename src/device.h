@@ -36,6 +36,7 @@ void device_finalize(Device *device);
 
 #define device_get_fd(device) ((device)->poll_fd.fd)
 
+void device_close(Device *device);
 gssize device_read(Device *device, gpointer buffer, gsize length);
 gboolean device_write(Device *device, gconstpointer buffer, gsize length);
 

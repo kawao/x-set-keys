@@ -75,19 +75,21 @@ UInputDevice *ud_initialize(XSetKeys *xsk)
 void ud_finalize(XSetKeys *xsk)
 {
   UInputDevice *device = xsk_get_uinput_device(xsk);
-  KeyCode *pointer;
 
-  for (pointer = &key_code_array_get_at(device->pressing_keys, 0);
-       *pointer;
-       pointer++) {
-    ud_send_key_event(xsk, *pointer, FALSE, TRUE);
+  if (device->pressing_keys) {
+    KeyCode *pointer;
+
+    for (pointer = &key_code_array_get_at(device->pressing_keys, 0);
+         *pointer;
+         pointer++) {
+      ud_send_key_event(xsk, *pointer, FALSE, TRUE);
+    }
+    key_code_array_free(device->pressing_keys);
   }
   if (ioctl(device_get_fd(&device->device), UI_DEV_DESTROY) < 0) {
     print_error("Failed to destroy uinput device");
   }
-  if (device->pressing_keys) {
-    key_code_array_free(device->pressing_keys);
-  }
+  device_close(&device->device);
   device_finalize(&device->device);
 }
 

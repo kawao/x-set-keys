@@ -56,11 +56,15 @@ Device *device_initialize(gint fd,
 
 void device_finalize(Device *device)
 {
+  g_source_destroy(&device->source);
+  g_source_unref(&device->source);
+}
+
+void device_close(Device *device)
+{
   if (close(device->poll_fd.fd) < 0) {
     print_error("Failed to close %s", g_source_get_name(&device->source));
   }
-  g_source_destroy(&device->source);
-  g_source_unref(&device->source);
 }
 
 gssize device_read(Device *device, gpointer buffer, gsize count)

@@ -80,9 +80,10 @@ void xsk_finalize(XSetKeys *xsk)
   if (xsk->keyboard_device) {
     kd_finalize(xsk);
   }
-  if (xsk->display) {
+  if (xsk->window_system) {
     window_system_finalize(xsk);
-    ki_finalize(&xsk->key_information);
+  }
+  if (xsk->display) {
     XCloseDisplay(xsk->display);
   }
   if (xsk->root_actions) {

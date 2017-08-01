@@ -58,10 +58,6 @@ void ki_initialize(Display *display, KeyInformation *key_info)
   _initialize_cursor_info(display, key_info);
 }
 
-void ki_finalize(KeyInformation *key_info)
-{
-}
-
 KeyCombination
 ki_pressing_keys_to_key_combination(const KeyInformation *key_info,
                                     KeyCode key_code,
