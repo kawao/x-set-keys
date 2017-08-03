@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <setjmp.h>
 #include <glib-unix.h>
 #include <X11/Xlib.h>
 
@@ -38,14 +39,17 @@ static volatile gboolean _caught_sigint = FALSE;
 static volatile gboolean _caught_sigterm = FALSE;
 static volatile gboolean _caught_sighup = FALSE;
 static volatile gboolean _error_occurred = FALSE;
+static jmp_buf _xio_error_env;
 
 static void _set_debug_flag();
+static gboolean _parse_option(gint argc, gchar *argv[], _Option *option);
+static void _free_option( _Option *option);
 static gboolean _handle_signal(gpointer flag_pointer);
 static gint _handle_x_error(Display *display, XErrorEvent *event);
 static gint _handle_xio_error(Display *display);
 static gboolean _run(const _Option *option);
 
-gint main(gint argc, const gchar *argv[])
+gint main(gint argc, gchar *argv[])
 {
   _Option option = { 0 };
   gint error_retry_count = 0;
@@ -53,19 +57,16 @@ gint main(gint argc, const gchar *argv[])
   g_set_prgname(g_path_get_basename(argv[0]));
   _set_debug_flag();
 
+  if (!_parse_option(argc, argv, &option)) {
+    return EXIT_FAILURE;
+  }
+
   g_unix_signal_add(SIGINT, _handle_signal, (gpointer)&_caught_sigint);
   g_unix_signal_add(SIGTERM, _handle_signal, (gpointer)&_caught_sigterm);
   g_unix_signal_add(SIGHUP, _handle_signal, (gpointer)&_caught_sighup);
 
   XSetErrorHandler(_handle_x_error);
   XSetIOErrorHandler(_handle_xio_error);
-
-  {
-    static gchar *excluded_classes[] = {
-      "emacs", "Gnome-terminal", NULL
-    };
-    option.excluded_classes = excluded_classes;
-  }
 
   while (_run(&option)) {
     if (_error_occurred) {
@@ -79,8 +80,9 @@ gint main(gint argc, const gchar *argv[])
     }
     g_message("Restarting");
   }
-  g_message("Exiting");
 
+  g_message("Exiting");
+  _free_option(&option);
   return _error_occurred ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
@@ -96,7 +98,68 @@ static void _set_debug_flag()
   is_debug = domains != NULL && strcmp(domains, "all") == 0;
 }
 
-gboolean _handle_signal(gpointer flag_pointer)
+static gboolean _parse_option(gint argc, gchar *argv[], _Option *option)
+{
+  gboolean result = TRUE;
+  GOptionEntry entries[] = {
+    {
+      "device-file", 'd', 0, G_OPTION_ARG_FILENAME,
+      &option->device_filepath,
+      "Keyboard device file", "devicefile"
+    }, {
+      "exclude-focus-class", 'e', 0, G_OPTION_ARG_STRING_ARRAY,
+      &option->excluded_classes,
+      "Exclude class of input focus window (Can be specified multiple times)",
+      "classname"
+    }, {
+      NULL
+    }
+  };
+  GError *error = NULL;
+  GOptionContext *context = g_option_context_new("configuration-file");
+
+  g_option_context_add_main_entries(context, entries, NULL);
+  if (!g_option_context_parse(context, &argc, &argv, &error)) {
+    gchar *help;
+
+    g_critical("Option parsing failed: %s", error->message);
+    g_error_free(error);
+
+    help = g_option_context_get_help(context, TRUE, NULL);
+    g_print("%s\n", help);
+    g_free(help);
+    result = FALSE;
+  } else if (argc != 2) {
+    gchar *help;
+
+    if (argc < 2) {
+      g_critical("Configuration file must be specified");
+    } else {
+      g_critical("Too many arguments");
+    }
+
+    help = g_option_context_get_help(context, TRUE, NULL);
+    g_print("%s\n", help);
+    g_free(help);
+    result = FALSE;
+  } else {
+    option->config_filepath = argv[1];
+  }
+  g_option_context_free(context);
+  return result;
+}
+
+static void _free_option( _Option *option)
+{
+  if (option->device_filepath) {
+    g_free(option->device_filepath);
+  }
+  if (option->excluded_classes) {
+    g_strfreev(option->excluded_classes);
+  }
+}
+
+static gboolean _handle_signal(gpointer flag_pointer)
 {
   *((volatile gboolean *)flag_pointer) = TRUE;
   g_main_context_wakeup(NULL);
@@ -119,6 +182,7 @@ static gint _handle_xio_error(Display *display)
 {
   g_critical("Connection lost to X server `%s'", DisplayString(display));
   _error_occurred = TRUE;
+  longjmp(_xio_error_env, 1);
   return 0;
 }
 
@@ -127,13 +191,21 @@ static gboolean _run(const _Option *option)
   gboolean result = TRUE;
   XSetKeys xsk = { 0 };
 
+  if (setjmp(_xio_error_env)) {
+    return FALSE;
+  }
+
   if (!xsk_initialize(&xsk, option->excluded_classes)) {
     _error_occurred = TRUE;
-  } else if (!config_load(&xsk, option->config_filepath)) {
-    _error_occurred = TRUE;
-  } else if (!xsk_start(&xsk, option->device_filepath)) {
+  }
+  if (!_error_occurred && !config_load(&xsk, option->config_filepath)) {
     _error_occurred = TRUE;
   }
+  if (!_error_occurred && !xsk_start(&xsk, option->device_filepath)) {
+    _error_occurred = TRUE;
+  }
+
+  setjmp(_xio_error_env);
 
   if (_error_occurred) {
     result = FALSE;
@@ -160,6 +232,10 @@ static gboolean _run(const _Option *option)
     }
   }
   g_message(result ? "Initiating restart" : "Initiating shutdown");
+
+  if (setjmp(_xio_error_env)) {
+    return FALSE;
+  }
 
   xsk_finalize(&xsk);
   return result;
