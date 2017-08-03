@@ -27,6 +27,7 @@
   g_tree_insert((list),                                                 \
                 g_memdup(&(key_combination), sizeof (KeyCombination)),   \
                 (action))
+#define _list_get_length(action_list) g_tree_nnodes(action_list)
 #define _list_lookup(list, key_combination) \
   g_tree_lookup((list), &(key_combination))
 
@@ -94,6 +95,11 @@ gboolean action_list_add_select_action(ActionList *actions_list,
   return TRUE;
 }
 
+gint action_list_get_length(const ActionList *action_list)
+{
+  return _list_get_length((ActionList *)action_list);
+}
+
 const Action *action_list_lookup(const ActionList *action_list,
                                  KeyCombination key_combination)
 {
@@ -124,7 +130,7 @@ static gboolean _add_action(ActionList *action_list,
                             Action *action)
 {
   if (num_input_keys == 1) {
-    if (_list_lookup(action_list, input_keys)) {
+    if (_list_lookup(action_list, *input_keys)) {
       g_critical("Duplicate input");
       return FALSE;
     }

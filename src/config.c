@@ -21,182 +21,161 @@
 #include "config.h"
 #include "action.h"
 
-static gboolean _load(XSetKeys *xsk,
-                      KeyCombinationArray *inputs,
-                      KeyCodeArrayArray *outputs);
-static KeyCombination _create_key_combination(XSetKeys *xsk,
-                                              const gchar *string);
-static KeyCodeArray *_create_key_code_array(XSetKeys *xsk, const gchar *string);
+static gboolean _parse_line(XSetKeys *xsk,
+                            KeyCombinationArray *inputs,
+                            KeyCodeArrayArray *outputs,
+                            gchar *line);
+static gchar *_get_next_word(gchar **line_pointer);
 
-gboolean config_load(XSetKeys *xsk, gchar filepath[])
+gboolean config_load(XSetKeys *xsk, const gchar filepath[])
 {
-  KeyCombinationArray *inputs = key_combination_array_new(6);
-  KeyCodeArrayArray *outputs = key_code_array_array_new(6);
+  gboolean result = TRUE;
+  GError *error = NULL;
+  GIOChannel *channel;
+  gint line_number;
+  KeyCombinationArray *inputs;
+  KeyCodeArrayArray *outputs;
 
-  gboolean result = _load(xsk, inputs, outputs);
+  channel = g_io_channel_new_file(filepath, "r", &error);
+  if (!channel) {
+    g_critical("Failed to open configuration file(%s): %s",
+               filepath,
+               error->message);
+    g_error_free(error);
+    return FALSE;
+  }
+
+  inputs = key_combination_array_new(6);
+  outputs = key_code_array_array_new(6);
+
+  for (line_number = 1; result; line_number++) {
+    gchar *line;
+    GIOStatus status = g_io_channel_read_line(channel,
+                                              &line,
+                                              NULL,
+                                              NULL,
+                                              &error);
+    if (status == G_IO_STATUS_ERROR) {
+      g_critical("Failed to read configuration file(%s) at line %d: %s",
+                 filepath,
+                 line_number,
+                 error->message);
+      g_error_free(error);
+      result = FALSE;
+      break;
+    }
+    if (status == G_IO_STATUS_EOF) {
+      break;
+    }
+    if (!_parse_line(xsk, inputs, outputs, line)) {
+      g_critical("Configuration file(%s) error at line %d",
+                 filepath,
+                 line_number);
+      result = FALSE;
+    }
+    g_free(line);
+  }
 
   key_combination_array_free(inputs);
   key_code_array_array_free(outputs);
 
+  if (g_io_channel_shutdown(channel, FALSE, &error) == G_IO_STATUS_ERROR) {
+    g_critical("Failed to close configuration file(%s): %s",
+               filepath,
+               error->message);
+    g_error_free(error);
+  }
+
+  if (result && !action_list_get_length(xsk_get_root_actions(xsk))) {
+    g_critical("No data in configuration file: %s", filepath);
+    result = FALSE;
+  }
+
   return result;
-
-#if 0
-  key_combination_array_add(inputs, kc);
-  key_code_array_array_add(outputs, _create_key_code_array(xsk, "Tab"));
-  result = action_add_key_action(xsk, inputs, outputs);
-  g_warn_if_fail(result);
-
-  _create_key_combination(xsk, "C-A-Delete");
-  _create_key_combination(xsk, "C-B-Delete");
-  _create_key_combination(xsk, "C-M-Delete");
-  _create_key_combination(xsk, "C-H-Delete");
-  _create_key_combination(xsk, "C-A-delete");
-  _create_key_combination(xsk, "C-A-Caps_Lock");
-
-  _create_key_code_array(xsk, "C-A-Delete");
-  _create_key_code_array(xsk, "C-B-Delete");
-  _create_key_code_array(xsk, "C-M-Delete");
-  _create_key_code_array(xsk, "C-H-Delete");
-  _create_key_code_array(xsk, "C-A-delete");
-  _create_key_code_array(xsk, "C-A-Caps_Lock");
-
-  return FALSE;
-#endif
 }
 
-static gboolean _load(XSetKeys *xsk,
-                      KeyCombinationArray *inputs,
-                      KeyCodeArrayArray *outputs)
+static gboolean _parse_line(XSetKeys *xsk,
+                            KeyCombinationArray *inputs,
+                            KeyCodeArrayArray *outputs,
+                            gchar *line)
 {
-  struct {
-    const gchar *inputs[4];
-    const gchar *outputs[4];
-  } commands[] = {
-    {{ "C-i" }, { "Tab" }},
-    {{ "A-i" }, { "S-Tab" }},
-    {{ "C-m" }, { "Return" }},
-    {{ "C-j" }, { "C-Return" }},
-    {{ "A-j" }, { "C-S-Return" }},
-    {{ "C-g" }, { "Escape" }},
-    {{ "C-h" }, { "BackSpace" }},
-    {{ "C-d" }, { "Delete" }},
-    {{ "C-a" }, { "Home" }},
-    {{ "C-e" }, { "End" }},
-    {{ "C-b" }, { "Left" }},
-    {{ "C-f" }, { "Right" }},
-    {{ "C-p" }, { "Up" }},
-    {{ "C-n" }, { "Down" }},
-    {{ "A-v" }, { "Page_Up" }},
-    {{ "C-v" }, { "Page_Down" }},
-    {{ "A-b" }, { "C-Left" }},
-    {{ "A-f" }, { "C-Right" }},
-    {{ "C-bracketleft", "S-bracketleft" }, { "C-Up" }},
-    {{ "C-bracketleft", "S-bracketright" }, { "C-Down" }},
-    {{ "C-bracketleft", "S-comma" }, { "C-Home" }},
-    {{ "C-bracketleft", "S-period" }, { "C-End" }},
-    {{ "A-w" }, { "C-c" }},
-    {{ "C-w" }, { "C-x" }},
-    {{ "C-y" }, { "C-v" }},
-    {{ "C-slash" }, { "C-z" }},
-    {{ "A-d" }, { "S-C-Right", "C-x" }},
-    {{ "C-k" }, { "S-End", "C-x" }},
-    {{ "C-s" }, { "C-f" }},
-    {{ "C-r" }, { "C-S-g" }},
-    {{ "C-x", "C-f" }, { "C-o" }},
-    {{ "C-x", "C-s" }, { "C-s" }},
-    {{ "C-x", "k" }, { "C-w" }},
-    {{ "C-x", "C-c" }, { "A-F4" }},
-    {{ "C-q", "C-q" }, { "C-q" }}
-  };
+  gchar *word;
 
-  gint index;
-  gboolean result;
-  KeyCombination kc;
-
-  for (index = 0; index < array_num(commands); index++) {
-    const gchar **pointer;
-
-    key_combination_array_clear(inputs);
-    key_code_array_array_clear(outputs);
-
-    for (pointer = commands[index].inputs; *pointer; pointer++) {
-      kc = _create_key_combination(xsk, *pointer);
-      key_combination_array_add(inputs, kc);
-    }
-
-    for (pointer = commands[index].outputs; *pointer; pointer++) {
-      key_code_array_array_add(outputs, _create_key_code_array(xsk, *pointer));
-    }
-
-    if (is_debug) {
-      GString *string = g_string_sized_new(32);
-
-      for (pointer = commands[index].inputs; *pointer; pointer++) {
-        g_string_append_c(string, ' ');
-        g_string_append(string, *pointer);
-      }
-      g_string_append(string, " ::");
-      for (pointer = commands[index].outputs; *pointer; pointer++) {
-        g_string_append_c(string, ' ');
-        g_string_append(string, *pointer);
-      }
-      debug_print("Registering: [%s ]", string->str);
-      g_string_free(string, TRUE);
-    }
-
-    result = action_list_add_key_action(xsk_get_root_actions(xsk),
-                                        inputs,
-                                        outputs);
-    g_return_val_if_fail(result, FALSE);
+  word = _get_next_word(&line);
+  if (!word || *word == '#') {
+    return TRUE;
   }
+
+  debug_print("Parsing: %s %s", word, line);
 
   key_combination_array_clear(inputs);
-  kc = _create_key_combination(xsk, "C-space");
-  key_combination_array_add(inputs, kc);
-  debug_print("Registering: [ C-space :: $selection ]");
-  result = action_list_add_select_action(xsk_get_root_actions(xsk), inputs);
+  key_code_array_array_clear(outputs);
 
-  return TRUE;
-}
+  do {
+    KeyCombination kc;
 
-static KeyCombination _create_key_combination(XSetKeys *xsk,
-                                              const gchar *string)
-{
-  KeyCombination kc = ki_string_to_key_combination(xsk_get_display(xsk),
-                                                   xsk_get_key_information(xsk),
-                                                   string);
-#if 0
-  debug_print("%s: key_code=%d modifiers=%x",
-              string,
-              kc.s.key_code,
-              kc.s.modifiers);
-#endif
-  return kc;
-}
-
-static KeyCodeArray *_create_key_code_array(XSetKeys *xsk, const gchar *string)
-{
-  KeyCodeArray *array =
-    ki_string_to_key_code_array(xsk_get_display(xsk),
-                                xsk_get_key_information(xsk),
-                                string);
-#if 0
-  if (array) {
-    GString *text = g_string_sized_new(32);
-    KeyCode *pointer;
-
-    for (pointer = &key_code_array_get_at(array, 0); *pointer; pointer++) {
-      if (pointer != &key_code_array_get_at(array, 0)) {
-        g_string_append(text, ", ");
-      }
-      g_string_append_printf(text, "%d", *pointer);
+    kc = ki_string_to_key_combination(xsk_get_display(xsk),
+                                      xsk_get_key_information(xsk),
+                                      word);
+    if (key_combination_is_null(kc)) {
+      return FALSE;
     }
-    debug_print("%s: [%s]", string, text->str);
+    key_combination_array_add(inputs, kc);
 
-    g_string_free(text, TRUE);
-  } else {
-    debug_print("%s: NULL", string);
+    word = _get_next_word(&line);
+    if (!word) {
+      return FALSE;
+    }
+  } while (strcmp(word, "::"));
+
+  if (!key_combination_array_get_length(inputs)) {
+    return FALSE;
   }
-#endif
-  return array;
+
+  while ((word = _get_next_word(&line))) {
+    KeyCodeArray *key_array;
+
+    if (!strcmp(word, "$select")) {
+      return action_list_add_select_action(xsk_get_root_actions(xsk), inputs);
+    }
+    key_array = ki_string_to_key_code_array(xsk_get_display(xsk),
+                                            xsk_get_key_information(xsk),
+                                            word);
+    if (!key_array) {
+      return FALSE;
+    }
+    key_code_array_array_add(outputs, key_array);
+  }
+
+  if (!key_code_array_array_get_length(outputs)) {
+    return FALSE;
+  }
+  return action_list_add_key_action(xsk_get_root_actions(xsk), inputs, outputs);
+}
+
+static gchar *_get_next_word(gchar **line_pointer)
+{
+  gchar *result;
+  gchar *pointer = *line_pointer;
+
+  for ( ; *pointer; pointer++) {
+    if (!g_ascii_isspace(*pointer)) {
+      break;
+    }
+  }
+  if (!*pointer) {
+    return NULL;
+  }
+
+  result = pointer;
+  for ( ; *pointer; pointer++) {
+    if (g_ascii_isspace(*pointer)) {
+      break;
+    }
+  }
+  if (*pointer) {
+    *pointer++ = '\0';
+  }
+  *line_pointer = pointer;
+  return result;
 }

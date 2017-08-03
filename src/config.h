@@ -22,6 +22,6 @@
 
 #include "x-set-keys.h"
 
-gboolean config_load(XSetKeys *xsk, gchar filepath[]);
+gboolean config_load(XSetKeys *xsk, const gchar filepath[]);
 
 #endif /* _CONFIG_H */
