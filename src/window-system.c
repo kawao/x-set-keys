@@ -118,7 +118,11 @@ static gboolean _get_is_excluded(Display *display,
   Window *children;
   guint nchildren;
 
-  if (excluded_classes == NULL) {
+  if (!excluded_classes) {
+    return FALSE;
+  }
+  if (window == None || window == PointerRoot) {
+    g_warning("XGetInputFocus returned special window");
     return FALSE;
   }
 
