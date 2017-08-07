@@ -223,7 +223,7 @@ static gboolean _handle_input(gpointer user_data)
     return FALSE;
   }
   if (length != sizeof (event)) {
-    g_critical("Tow few read length from keyboard device : read=%ld < %ld",
+    g_critical("Tow few read length from keyboard device : read=%zd < %zd",
                length,
                sizeof (event));
     return FALSE;

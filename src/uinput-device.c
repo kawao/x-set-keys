@@ -209,7 +209,7 @@ static gboolean _handle_input(gpointer user_data)
   if (length < 0) {
     return FALSE;
   }
-  debug_print("Read from uinput : length=%ld", length);
+  debug_print("Read from uinput : length=%zd", length);
   return kd_write(xsk, &event, length);
 }
 
