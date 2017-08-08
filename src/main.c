@@ -29,11 +29,11 @@
 #include "x-set-keys.h"
 #include "config.h"
 
-typedef struct _Option_ {
+typedef struct _Arguments_ {
   gchar *config_filepath;
   gchar *device_filepath;
   gchar **excluded_classes;
-} _Option;
+} _Arguments;
 
 static volatile gboolean _caught_sigint = FALSE;
 static volatile gboolean _caught_sigterm = FALSE;
@@ -42,22 +42,24 @@ static volatile gboolean _error_occurred = FALSE;
 static jmp_buf _xio_error_env;
 
 static void _set_debug_flag();
-static gboolean _parse_option(gint argc, gchar *argv[], _Option *option);
-static void _free_option( _Option *option);
+static gboolean _parse_arguments(gint argc,
+                                 gchar *argv[],
+                                 _Arguments *arguments);
+static void _free_arguments( _Arguments *arguments);
 static gboolean _handle_signal(gpointer flag_pointer);
 static gint _handle_x_error(Display *display, XErrorEvent *event);
 static gint _handle_xio_error(Display *display);
-static gboolean _run(const _Option *option);
+static gboolean _run(const _Arguments *arguments);
 
 gint main(gint argc, gchar *argv[])
 {
-  _Option option = { 0 };
+  _Arguments arguments = { 0 };
   gint error_retry_count = 0;
 
   g_set_prgname(g_path_get_basename(argv[0]));
   _set_debug_flag();
 
-  if (!_parse_option(argc, argv, &option)) {
+  if (!_parse_arguments(argc, argv, &arguments)) {
     return EXIT_FAILURE;
   }
 
@@ -68,7 +70,7 @@ gint main(gint argc, gchar *argv[])
   XSetErrorHandler(_handle_x_error);
   XSetIOErrorHandler(_handle_xio_error);
 
-  while (_run(&option)) {
+  while (_run(&arguments)) {
     if (_error_occurred) {
       if (++error_retry_count > 10) {
         g_critical("Maximum error retry count exceeded");
@@ -82,7 +84,7 @@ gint main(gint argc, gchar *argv[])
   }
 
   g_message("Exiting");
-  _free_option(&option);
+  _free_arguments(&arguments);
   return _error_occurred ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
@@ -98,17 +100,19 @@ static void _set_debug_flag()
   is_debug = domains != NULL && strcmp(domains, "all") == 0;
 }
 
-static gboolean _parse_option(gint argc, gchar *argv[], _Option *option)
+static gboolean _parse_arguments(gint argc,
+                                 gchar *argv[],
+                                 _Arguments *arguments)
 {
   gboolean result = TRUE;
   GOptionEntry entries[] = {
     {
       "device-file", 'd', 0, G_OPTION_ARG_FILENAME,
-      &option->device_filepath,
+      &arguments->device_filepath,
       "Keyboard device file", "devicefile"
     }, {
       "exclude-focus-class", 'e', 0, G_OPTION_ARG_STRING_ARRAY,
-      &option->excluded_classes,
+      &arguments->excluded_classes,
       "Exclude class of input focus window (Can be specified multiple times)",
       "classname"
     }, {
@@ -143,19 +147,19 @@ static gboolean _parse_option(gint argc, gchar *argv[], _Option *option)
     g_free(help);
     result = FALSE;
   } else {
-    option->config_filepath = argv[1];
+    arguments->config_filepath = argv[1];
   }
   g_option_context_free(context);
   return result;
 }
 
-static void _free_option( _Option *option)
+static void _free_arguments( _Arguments *arguments)
 {
-  if (option->device_filepath) {
-    g_free(option->device_filepath);
+  if (arguments->device_filepath) {
+    g_free(arguments->device_filepath);
   }
-  if (option->excluded_classes) {
-    g_strfreev(option->excluded_classes);
+  if (arguments->excluded_classes) {
+    g_strfreev(arguments->excluded_classes);
   }
 }
 
@@ -186,7 +190,7 @@ static gint _handle_xio_error(Display *display)
   return 0;
 }
 
-static gboolean _run(const _Option *option)
+static gboolean _run(const _Arguments *arguments)
 {
   gboolean result = TRUE;
   XSetKeys xsk = { 0 };
@@ -195,13 +199,13 @@ static gboolean _run(const _Option *option)
     return FALSE;
   }
 
-  if (!xsk_initialize(&xsk, option->excluded_classes)) {
+  if (!xsk_initialize(&xsk, arguments->excluded_classes)) {
     _error_occurred = TRUE;
   }
-  if (!_error_occurred && !config_load(&xsk, option->config_filepath)) {
+  if (!_error_occurred && !config_load(&xsk, arguments->config_filepath)) {
     _error_occurred = TRUE;
   }
-  if (!_error_occurred && !xsk_start(&xsk, option->device_filepath)) {
+  if (!_error_occurred && !xsk_start(&xsk, arguments->device_filepath)) {
     _error_occurred = TRUE;
   }
 
