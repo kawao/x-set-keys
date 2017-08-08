@@ -31,6 +31,7 @@ static gint _open_uinput_device();
 static gboolean _write_user_dev(Device *device);
 static gboolean _set_evbits(Device *device, XSetKeys *xsk);
 static gboolean _set_keybits(Device *device, XSetKeys *xsk);
+static gboolean _set_ledbits(Device *device, XSetKeys *xsk);
 static gboolean _handle_input(gpointer user_data);
 static gboolean _send_event(XSetKeys *xsk,
                             struct input_event *event,
@@ -60,6 +61,10 @@ UInputDevice *ud_initialize(XSetKeys *xsk)
     return NULL;
   }
   if (!_set_keybits(&device->device, xsk)) {
+    device_finalize(&device->device);
+    return NULL;
+  }
+  if (!_set_ledbits(&device->device, xsk)) {
     device_finalize(&device->device);
     return NULL;
   }
@@ -163,7 +168,7 @@ static gboolean _set_evbits(Device *device, XSetKeys *xsk)
     return FALSE;
   }
   for (index = 0; index < EV_CNT; index++) {
-    if (kd_test_bit(ev_bits, index)) {
+    if (index != EV_MSC && kd_test_bit(ev_bits, index)) {
       if (ioctl(device_get_fd(device), UI_SET_EVBIT, index) < 0) {
         print_error("Failed to set ev bit %02x to uinput device", index);
         return FALSE;
@@ -190,6 +195,27 @@ static gboolean _set_keybits(Device *device, XSetKeys *xsk)
         return FALSE;
       }
       debug_print("UI_SET_KEYBIT : %d", index);
+    }
+  }
+  return TRUE;
+}
+
+static gboolean _set_ledbits(Device *device, XSetKeys *xsk)
+{
+  guint8 led_bits[KD_LED_BITS_LENGTH] = { 0 };
+  gint index;
+
+  if (!kd_get_led_bits(xsk, led_bits)) {
+    print_error("Failed to get led bits from keyboard device");
+    return FALSE;
+  }
+  for (index = 0; index < LED_CNT; index++) {
+    if (kd_test_bit(led_bits, index)) {
+      if (ioctl(device_get_fd(device), UI_SET_LEDBIT, index) < 0) {
+        print_error("Failed to set led bit %d to uinput device", index);
+        return FALSE;
+      }
+      debug_print("UI_SET_LEDBIT : %d", index);
     }
   }
   return TRUE;

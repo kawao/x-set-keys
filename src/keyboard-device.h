@@ -40,6 +40,9 @@ gboolean kd_get_ev_bits(XSetKeys *xsk, guint8 ev_bits[]);
 #define KD_KEY_BITS_LENGTH (KEY_MAX/8 + 1)
 gboolean kd_get_key_bits(XSetKeys *xsk, guint8 key_bits[]);
 
+#define KD_LED_BITS_LENGTH (LED_MAX/8 + 1)
+gboolean kd_get_led_bits(XSetKeys *xsk, guint8 led_bits[]);
+
 #define kd_test_bit(array, bit) ((array)[(bit) / 8] & (1 << ((bit) % 8)))
 
 #define kd_write(xsk, buffer, length)                                   \

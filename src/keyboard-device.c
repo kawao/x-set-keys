@@ -95,6 +95,15 @@ gboolean kd_get_key_bits(XSetKeys *xsk, guint8 key_bits[])
   return _get_key_bits(device_get_fd(&device->device), key_bits);
 }
 
+gboolean kd_get_led_bits(XSetKeys *xsk, guint8 led_bits[])
+{
+  KeyboardDevice *device = xsk_get_keyboard_device(xsk);
+
+  return ioctl(device_get_fd(&device->device),
+               EVIOCGBIT(EV_LED, KD_LED_BITS_LENGTH),
+               led_bits) >= 0;
+}
+
 static gint _open_device_file(const gchar *device_filepath)
 {
   gint fd;
@@ -245,9 +254,7 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
 
   switch (event->type) {
   case EV_MSC:
-    if (event->code == MSC_SCAN) {
-      return TRUE;
-    }
+    return TRUE;
     break;
   case EV_KEY:
     if (!ki_is_valid_key_code(event->code)) {
