@@ -109,18 +109,18 @@ static gboolean _parse_arguments(gint argc,
     {
       "device-file", 'd', 0, G_OPTION_ARG_FILENAME,
       &arguments->device_filepath,
-      "Keyboard device file", "devicefile"
+      "Keyboard device file", "<devicefile>"
     }, {
       "exclude-focus-class", 'e', 0, G_OPTION_ARG_STRING_ARRAY,
       &arguments->excluded_classes,
       "Exclude class of input focus window (Can be specified multiple times)",
-      "classname"
+      "<classname>"
     }, {
       NULL
     }
   };
   GError *error = NULL;
-  GOptionContext *context = g_option_context_new("configuration-file");
+  GOptionContext *context = g_option_context_new("<configuration-file>");
 
   g_option_context_add_main_entries(context, entries, NULL);
   if (!g_option_context_parse(context, &argc, &argv, &error)) {
