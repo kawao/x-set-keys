@@ -353,12 +353,16 @@ static void _set_modifier_info(KeyInformation *key_info,
     }
     key_code -= _KEY_CODE_OFFSET;
     key_info->modifier_mask_or_key_kind[key_code] = (1 << modifier);
-    if (modifier != KI_MODIFIER_OTHER &&
-        !key_info->modifier_key_code[modifier]) {
-      key_info->modifier_key_code[modifier] = key_code;
+    if (modifier != KI_MODIFIER_OTHER) {
+      if (!key_info->modifier_key_code[modifier]) {
+        key_info->modifier_key_code[modifier] = key_code;
+      }
+      debug_print("Set modifier=%s modmap-row=%d key-code=%d",
+                  _modifier_names[modifier],
+                  row,
+                  key_code);
     }
   }
-  debug_print("Set modifier=%s modmap-row=%d", _modifier_names[modifier], row);
 }
 
 static void _initialize_cursor_info(Display *display, KeyInformation *key_info)
