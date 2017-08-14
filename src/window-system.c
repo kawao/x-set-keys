@@ -22,6 +22,8 @@
 #include "common.h"
 #include "window-system.h"
 
+#define _is_valid_window(window) ((window) != None && (window) != PointerRoot)
+
 static gboolean _handle_event(gpointer user_data);
 
 static Window _get_focus_window(Display *display);
@@ -43,7 +45,14 @@ WindowSystem *window_system_initialize(XSetKeys *xsk,
                                          xsk);
   ws->excluded_classes = excluded_classes;
   ws->active_window_atom = XInternAtom(display, "_NET_ACTIVE_WINDOW", False);
+
   ws->focus_window = _get_focus_window(display);
+  if (!_is_valid_window(ws->focus_window)) {
+    g_critical("XGetInputFocus returned special window");
+    device_finalize(&ws->device);
+    return NULL;
+  }
+
   ws->is_excluded = _get_is_excluded(display,
                                      ws->focus_window,
                                      ws->excluded_classes);
@@ -73,25 +82,31 @@ static gboolean _handle_event(gpointer user_data)
     XEvent event;
 
     XNextEvent(display, &event);
-    if (event.type == PropertyNotify) {
-      if (event.xproperty.atom == ws->active_window_atom) {
-        Window focus_window = _get_focus_window(display);
+    if (event.type == PropertyNotify &&
+        event.xproperty.atom == ws->active_window_atom) {
 
-        if (focus_window != ws->focus_window) {
-          gboolean is_excluded;
+      Window focus_window;
+      gboolean is_excluded;
 
-          ws->focus_window = focus_window;
-          is_excluded = _get_is_excluded(display,
-                                         focus_window,
-                                         ws->excluded_classes);
-          if (is_excluded && !ws->is_excluded) {
-            xsk_reset_state(xsk);
-          }
-          ws->is_excluded = is_excluded;
-          debug_print("Input focus window exclusion: %s",
-                      is_excluded ? "true" : "false");
-        }
+      focus_window = _get_focus_window(display);
+      if (focus_window == ws->focus_window) {
+        continue;
       }
+      if (!_is_valid_window(focus_window)) {
+        g_critical("XGetInputFocus returned special window");
+        return FALSE;
+      }
+
+      ws->focus_window = focus_window;
+      is_excluded = _get_is_excluded(display,
+                                     focus_window,
+                                     ws->excluded_classes);
+      if (is_excluded && !ws->is_excluded) {
+        xsk_reset_state(xsk);
+      }
+      ws->is_excluded = is_excluded;
+      debug_print("Input focus window exclusion: %s",
+                  is_excluded ? "true" : "false");
     }
   }
 
@@ -119,10 +134,6 @@ static gboolean _get_is_excluded(Display *display,
   guint nchildren;
 
   if (!excluded_classes) {
-    return FALSE;
-  }
-  if (window == None || window == PointerRoot) {
-    g_warning("XGetInputFocus returned special window");
     return FALSE;
   }
 

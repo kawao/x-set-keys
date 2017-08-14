@@ -49,11 +49,11 @@ gboolean xsk_initialize(XSetKeys *xsk, gchar *excluded_classes[])
     g_critical("Could not create X11 display");
     return FALSE;
   }
-  ki_initialize(xsk->display, &xsk->key_information);
   xsk->window_system = window_system_initialize(xsk, excluded_classes);
   if (!xsk->window_system) {
     return FALSE;
   }
+  ki_initialize(xsk->display, &xsk->key_information);
   xsk->root_actions = action_list_new();
   return TRUE;
 }

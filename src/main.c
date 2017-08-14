@@ -76,6 +76,7 @@ gint main(gint argc, gchar *argv[])
         g_critical("Maximum error retry count exceeded");
         break;
       }
+      g_usleep(G_USEC_PER_SEC);
       _error_occurred = FALSE;
     } else {
       error_retry_count = 0;
@@ -185,22 +186,25 @@ static gint _handle_x_error(Display *display, XErrorEvent *event)
 static gint _handle_xio_error(Display *display)
 {
   g_critical("Connection lost to X server `%s'", DisplayString(display));
-  _error_occurred = TRUE;
   longjmp(_xio_error_env, 1);
   return 0;
 }
 
 static gboolean _run(const _Arguments *arguments)
 {
-  gboolean result = TRUE;
+  gboolean is_restart = FALSE;
   XSetKeys xsk = { 0 };
 
   if (setjmp(_xio_error_env)) {
-    return FALSE;
+    _error_occurred = TRUE;
+    is_restart = FALSE;
   }
 
-  if (!xsk_initialize(&xsk, arguments->excluded_classes)) {
+  if (!_error_occurred && !xsk_initialize(&xsk, arguments->excluded_classes)) {
     _error_occurred = TRUE;
+    if (xsk_get_display(&xsk)) {
+      is_restart = TRUE;
+    }
   }
   if (!_error_occurred && !config_load(&xsk, arguments->config_filepath)) {
     _error_occurred = TRUE;
@@ -209,11 +213,7 @@ static gboolean _run(const _Arguments *arguments)
     _error_occurred = TRUE;
   }
 
-  setjmp(_xio_error_env);
-
-  if (_error_occurred) {
-    result = FALSE;
-  } else {
+  if (!_error_occurred) {
     debug_print("Starting main loop");
     _caught_sighup = FALSE;
     while (!_caught_sigint &&
@@ -222,25 +222,26 @@ static gboolean _run(const _Arguments *arguments)
            !_error_occurred) {
       g_main_context_iteration(NULL, TRUE);
     }
-
+    is_restart = TRUE;
     if (_caught_sigint) {
-      result = FALSE;
+      is_restart = FALSE;
       g_message("Caught SIGINT");
     }
     if (_caught_sigterm) {
-      result = FALSE;
+      is_restart = FALSE;
       g_message("Caught SIGTERM");
     }
     if (_caught_sighup) {
       g_message("Caught SIGHUP");
     }
   }
-  g_message(result ? "Initiating restart" : "Initiating shutdown");
+
+  g_message(is_restart ? "Initiating restart" : "Initiating shutdown");
 
   if (setjmp(_xio_error_env)) {
     return FALSE;
   }
 
   xsk_finalize(&xsk);
-  return result;
+  return is_restart;
 }
