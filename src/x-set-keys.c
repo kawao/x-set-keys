@@ -20,11 +20,11 @@
 #include "common.h"
 #include "x-set-keys.h"
 #include "window-system.h"
+#include "fcitx.h"
 #include "action.h"
 #include "keyboard-device.h"
 #include "uinput-device.h"
 
-#define _is_disabled(xsk) window_system_is_excluded(xsk)
 #define _reset_current_actions(xsk)                 \
   ((xsk)->current_actions = (xsk)->root_actions)
 
@@ -58,8 +58,16 @@ gboolean xsk_initialize(XSetKeys *xsk, gchar *excluded_classes[])
   return TRUE;
 }
 
-gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
+gboolean xsk_start(XSetKeys *xsk,
+                   const gchar *device_filepath,
+                   gchar *excluded_fcitx_input_methods[])
 {
+  if (excluded_fcitx_input_methods) {
+    xsk->fcitx = fcitx_initialize(xsk, excluded_fcitx_input_methods);
+    if (!xsk->fcitx) {
+      return FALSE;
+    }
+  }
   xsk->keyboard_device = kd_initialize(xsk, device_filepath);
   if (!xsk->keyboard_device) {
     return FALSE;
@@ -68,7 +76,7 @@ gboolean xsk_start(XSetKeys *xsk, const gchar *device_filepath)
   if (!xsk->uinput_device) {
     return FALSE;
   }
-  _reset_current_actions(xsk);
+  xsk_reset_state(xsk);
   return TRUE;
 }
 
@@ -80,14 +88,17 @@ void xsk_finalize(XSetKeys *xsk)
   if (xsk->keyboard_device) {
     kd_finalize(xsk);
   }
+  if (xsk->fcitx) {
+    fcitx_finalize(xsk);
+  }
+  if (xsk->root_actions) {
+    action_list_free(xsk->root_actions);
+  }
   if (xsk->window_system) {
     window_system_finalize(xsk);
   }
   if (xsk->display) {
     XCloseDisplay(xsk->display);
-  }
-  if (xsk->root_actions) {
-    action_list_free(xsk->root_actions);
   }
 }
 
@@ -95,7 +106,7 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
 {
   const Action *action;
 
-  if (_is_disabled(xsk)) {
+  if (xsk_is_excluded(xsk)) {
     return XSK_UNCONSUMED;
   }
   action = _lookup_action(xsk, key_code);
@@ -123,7 +134,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
   XskResult result;
 
   if (ud_is_key_pressed(xsk, key_code)) {
-    if (_is_disabled(xsk)) {
+    if (xsk_is_excluded(xsk)) {
       return XSK_UNCONSUMED;
     }
     action = _lookup_action(xsk, key_code);
@@ -194,6 +205,11 @@ void xsk_toggle_selection_mode(XSetKeys *xsk)
 {
   debug_print("%s selection mode", xsk->is_selection_mode ? "Exit" : "Enter" );
   xsk->is_selection_mode = !xsk->is_selection_mode;
+}
+
+gboolean xsk_is_excluded(XSetKeys *xsk)
+{
+  return window_system_is_excluded(xsk) || fcitx_is_excluded(xsk);
 }
 
 void xsk_reset_state(XSetKeys *xsk)

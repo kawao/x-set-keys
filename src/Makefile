@@ -2,11 +2,12 @@
 
 PROGRAM = x-set-keys
 OBJS = main.o x-set-keys.o action.o config.o key-code-array.o \
- key-information.o device.o keyboard-device.o uinput-device.o window-system.o
+  key-information.o device.o keyboard-device.o uinput-device.o window-system.o \
+  fcitx.o
 
 CC = gcc
-CFLAGS = -Wall -g -O2 `pkg-config --cflags glib-2.0`
-LDFLAGS = -lX11 `pkg-config --libs glib-2.0`
+CFLAGS = -Wall -g -O2 `pkg-config --cflags gio-2.0`
+LDFLAGS = -lX11 `pkg-config --libs gio-2.0`
 
 .SUFFIXES: .c .o
 

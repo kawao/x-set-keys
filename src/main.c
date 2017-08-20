@@ -33,6 +33,7 @@ typedef struct _Arguments_ {
   gchar *config_filepath;
   gchar *device_filepath;
   gchar **excluded_classes;
+  gchar **excluded_fcitx_input_methods;
 } _Arguments;
 
 static volatile gboolean _caught_sigint = FALSE;
@@ -117,6 +118,11 @@ static gboolean _parse_arguments(gint argc,
       "Exclude class of input focus window (Can be specified multiple times)",
       "<classname>"
     }, {
+      "exclude-fcitx-im", 'f', 0, G_OPTION_ARG_STRING_ARRAY,
+      &arguments->excluded_fcitx_input_methods,
+      "Exclude input method of fcitx (Can be specified multiple times)",
+      "<inputmethod>"
+    }, {
       NULL
     }
   };
@@ -161,6 +167,9 @@ static void _free_arguments( _Arguments *arguments)
   }
   if (arguments->excluded_classes) {
     g_strfreev(arguments->excluded_classes);
+  }
+  if (arguments->excluded_fcitx_input_methods) {
+    g_strfreev(arguments->excluded_fcitx_input_methods);
   }
 }
 
@@ -209,7 +218,9 @@ static gboolean _run(const _Arguments *arguments)
   if (!_error_occurred && !config_load(&xsk, arguments->config_filepath)) {
     _error_occurred = TRUE;
   }
-  if (!_error_occurred && !xsk_start(&xsk, arguments->device_filepath)) {
+  if (!_error_occurred && !xsk_start(&xsk,
+                                     arguments->device_filepath,
+                                     arguments->excluded_fcitx_input_methods)) {
     _error_occurred = TRUE;
   }
 

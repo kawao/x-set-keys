@@ -101,7 +101,7 @@ static gboolean _handle_event(gpointer user_data)
       is_excluded = _get_is_excluded(display,
                                      focus_window,
                                      ws->excluded_classes);
-      if (is_excluded && !ws->is_excluded) {
+      if (is_excluded && !xsk_is_excluded(xsk)) {
         xsk_reset_state(xsk);
       }
       ws->is_excluded = is_excluded;
