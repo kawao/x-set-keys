@@ -7,12 +7,13 @@ It allows you to change key sequence to another key sequence.
 
 - Supports emacs-like Cut/Copy and Paste keybindings.
 - Supports multiple storoke keybindings.
-For example You can map key sequence Control+x and then Control+c to Alt+F4 (Quit application).
-For another example You can map Control+k to key sequence Shift+End and then Constol+x (Kill line).
+For example, you can map key sequence Control+x and then Control+c to Alt+F4 (Quit application).
+For another example, you can map Control+k to key sequence Shift+End and then Constol+x (Kill line).
 - You can send any key to application.
 For the above example you can send Control+k to application directly, not only used for kill-line.
+- You can specify imput method of fcitx to exclude, for example mozc (Disable key remapping while specified fcitx input method is active).
 
-By using sample configuration file (emacslike.conf) , you can use any applications with Emacs-like keybindings running on X Window System on Linux.
+By using sample configuration file emacslike.conf, you can use any applications with Emacs-like keybindings running on X Window System on Linux.
 
 ## Installation
 
@@ -191,12 +192,18 @@ Print usage statement.
 #### -d, --device-file=`<devicefile>`
 
 Specify keyboard device file.
-If this optoin is omited then x-set-keys will search keyboard device from /dev/input/event\* and use the first found.
+If this option is omited then x-set-keys will search keyboard device from /dev/input/event\* and use the first found.
 
 #### -e, --exclude-focus-class=`<classname>`
 
 Specify excluded class of input focus window.
 The `xprop WM_CLASS` commands are useful in determining the class of a window.
+This option can be specified multiple times.
+
+#### -f, --exclude-fcitx-im=`<inputmethod>`
+
+Specify excluded input method of fcitx, for example mozc.
+To use this option you must run x-set-keys with sudo, and need to take over the environment variable `DBUS_SESSION_BUS_ADDRESS` from before sudo (See Example section below).
 This option can be specified multiple times.
 
 ### Example
@@ -218,6 +225,18 @@ $ sudo -b G_MESSAGES_PREFIXED=all /usr/local/bin/x-set-keys \
 The above example specify Realforce of Topre corporation as keyboard device.
 Environment variable `G_MESSAGES_PREFIXED=all` means that output messages should be prefixed by the program name and PID of x-set-keys.
 
+```sh
+$ sudo -b G_MESSAGES_PREFIXED=all \
+     DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS \
+     /usr/local/bin/x-set-keys \
+       --exclude-focus-class=Emacs \
+       --exclude-fcitx-im=mozc \
+       /usr/local/etc/x-set-keys/emacslike.conf
+```
+
+In the above example key remapping is disabled while the input method mozc of fcitx is active.
+To do this, the environment variable `DBUS_SESSION_BUS_ADDRESS` must be taken over from before sudo.
+
 ### Run x-set-keys without password
 
 To run x-set-keys without password, add following line to the bottom of the file /etc/sudoers by visudo command:
@@ -225,12 +244,6 @@ To run x-set-keys without password, add following line to the bottom of the file
 ```
 yourname ALL=(ALL) SETENV:NOPASSWD: /usr/local/bin/x-set-keys
 ```
-
-## Now Implementing
-
-Now I am implementing following feature:
-
-- Exclude specified fcitx imput method for example mozc (Disable key remapping while specified fcitx input method is active).
 
 ## Related Works
 
