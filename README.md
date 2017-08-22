@@ -84,7 +84,7 @@ Modifier keys are written as follow.:
 - **S-** : Shift
 - **s-** : super
 
-Key names are found in the header file [X11/keysymdef.h](https://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h) (remove the XK_ prefix).
+Key names are found in the header file [X11/keysymdef.h](https://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h) (remove the `XK_` prefix).
 
 ### Cursor navigation
 
@@ -196,7 +196,7 @@ If this optoin is omited then x-set-keys will search keyboard device from /dev/i
 #### -e, --exclude-focus-class=`<classname>`
 
 Specify excluded class of input focus window.
-The xprop WM_CLASS commands are useful in determining the class of a window.
+The `xprop WM_CLASS` commands are useful in determining the class of a window.
 This option can be specified multiple times.
 
 ### Example
@@ -204,18 +204,19 @@ This option can be specified multiple times.
 ```sh
 $ sudo -b /usr/local/bin/x-set-keys \
      --exclude-focus-class=emacs --exclude-focus-class=Gnome-terminal \
-     /usr/local/etc/x-set-keys.conf
+     /usr/local/etc/x-set-keys/emacslike.conf
 ```
 
-The above example run x-set-keys with configuration file /usr/local/etc/x-set-keys.conf, excluding emacs and gnome-terminal.
+The above example run x-set-keys with configuration file /usr/local/etc/x-set-keys/emacslike.conf, excluding emacs and gnome-terminal.
 
 ```sh
-$ sudo -b /usr/local/bin/x-set-keys \
+$ sudo -b G_MESSAGES_PREFIXED=all /usr/local/bin/x-set-keys \
      --device-file=/dev/input/by-id/usb-Topre_Corporation_Realforce-event-kbd \
-     --exclude-focus-class=emacs24 /usr/local/etc/x-set-keys.conf
+     --exclude-focus-class=emacs24 /usr/local/etc/x-set-keys/emacslike.conf
 ```
 
 The above example specify Realforce of Topre corporation as keyboard device.
+Environment variable `G_MESSAGES_PREFIXED=all` means that output messages should be prefixed by the program name and PID of x-set-keys.
 
 ### Run x-set-keys without password
 
