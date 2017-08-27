@@ -74,6 +74,7 @@ The above meanings are as follows.
 
 - Control+i maps to Tab
 - Control+m maps to Enter
+- Control+g maps to Escape
 - Control+h maps to BackSpace
 - Control+d maps to Delete
 
@@ -134,7 +135,7 @@ A-d :: S-C-Right C-x
 C-k :: S-End C-x
 ```
 
-*$select* is the special notation that means start/end selection.
+**$select** is the special notation that means start/end selection.
 
 To copy(cut) text, type Constrl+space and then move text cursor ( type cursor navigation key ), and then type Alt+w(Control+w).
 
