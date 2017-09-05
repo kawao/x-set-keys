@@ -127,7 +127,8 @@ static void _handle_name_appeared(GDBusConnection *connection,
                                        _handle_signal,
                                        user_data,
                                        NULL);
-  _update(connection, xsk);
+  /* Somehow does not work well at automatic startup */
+  /* _update(connection, xsk); */
 }
 
 static void _handle_name_vanished(GDBusConnection *connection,
