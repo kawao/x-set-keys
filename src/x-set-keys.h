@@ -54,7 +54,7 @@ void xsk_finalize(XSetKeys *xsk);
 XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code);
 XskResult xsk_handle_key_repeat(XSetKeys *xsk,
                                 KeyCode key_code,
-                                gint seconds_since_pressed);
+                                gboolean is_after_key_repeat_delay);
 gboolean xsk_send_key_events(XSetKeys *xsk,
                              const KeyCodeArrayArray *key_arrays);
 void xsk_toggle_selection_mode(XSetKeys *xsk);

@@ -128,7 +128,7 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
 
 XskResult xsk_handle_key_repeat(XSetKeys *xsk,
                                 KeyCode key_code,
-                                gint seconds_since_pressed)
+                                gboolean is_after_key_repeat_delay)
 {
   const Action *action;
   XskResult result;
@@ -144,7 +144,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
       }
       return XSK_UNCONSUMED;
     }
-    if (!seconds_since_pressed) {
+    if (!is_after_key_repeat_delay) {
       return XSK_CONSUMED;
     }
     if (!ud_send_key_event(xsk, key_code, FALSE, FALSE)) {
@@ -154,7 +154,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
     return action->run(xsk, action) ? XSK_CONSUMED : XSK_FAILED;
   }
 
-  if (!seconds_since_pressed) {
+  if (!is_after_key_repeat_delay) {
     return XSK_CONSUMED;
   }
   result = xsk_handle_key_press(xsk, key_code);
