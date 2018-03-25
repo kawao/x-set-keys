@@ -27,12 +27,15 @@
 #include "keyboard-device.h"
 #include "uinput-device.h"
 
-#define _500MS 500000ul
+#define _1SEC_IN_USEC 1000000ul
+#define _REPEAT_DELAY  500000ul
+#define _REPEAT_PERIOD  50000ul
+
 #define _is_after_repeat_delay(t1, t2)                                  \
   ((t2).tv_sec == (t1).tv_sec)                                          \
-  ? (t2).tv_usec > (t1).tv_usec + _500MS                                \
+  ? (t2).tv_usec > (t1).tv_usec + _REPEAT_DELAY                         \
   : (((t2).tv_sec == (t1).tv_sec + 1)                                   \
-     ? (t2).tv_usec + _500MS > (t1).tv_usec                             \
+     ? (t2).tv_usec + (_1SEC_IN_USEC - _REPEAT_DELAY) > (t1).tv_usec    \
      : (t2).tv_sec > (t1).tv_sec)
 
 static gint _open_device_file(const gchar *device_filepath);
@@ -284,6 +287,13 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
     default:
       is_after_repeat_delay = _is_after_repeat_delay(device->press_start_time,
                                                      event->time);
+      if (is_after_repeat_delay) {
+        device->press_start_time.tv_usec += _REPEAT_PERIOD;
+        if (device->press_start_time.tv_usec >= _1SEC_IN_USEC) {
+          device->press_start_time.tv_sec++;
+          device->press_start_time.tv_usec -= _1SEC_IN_USEC;
+        }
+      }
       switch (xsk_handle_key_repeat(xsk, event->code, is_after_repeat_delay)) {
       case XSK_CONSUMED:
         return TRUE;
