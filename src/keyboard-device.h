@@ -20,6 +20,7 @@
 #ifndef _KEYBOARD_DEVICE_H
 #define _KEYBOARD_DEVICE_H
 
+#include <X11/XKBlib.h>
 #include <linux/input.h>
 
 #include "x-set-keys.h"
@@ -29,6 +30,7 @@ typedef struct KeyboardDevice_ {
   Device device;
   KeyCodeArray *pressing_keys;
   struct timeval press_start_time;
+  XkbDescPtr xkb;
 } KeyboardDevice;
 
 KeyboardDevice *kd_initialize(XSetKeys *xsk, const gchar *device_filepath);

@@ -27,16 +27,12 @@
 #include "keyboard-device.h"
 #include "uinput-device.h"
 
-#define _1SEC_IN_USEC 1000000ul
-#define _REPEAT_DELAY  500000ul
-#define _REPEAT_PERIOD  50000ul
+#define _USEC_PER_SEC  1000000ul
+#define _USEC_PER_MSEC    1000ul
 
-#define _is_after_repeat_delay(t1, t2)                                  \
-  ((t2).tv_sec == (t1).tv_sec)                                          \
-  ? (t2).tv_usec > (t1).tv_usec + _REPEAT_DELAY                         \
-  : (((t2).tv_sec == (t1).tv_sec + 1)                                   \
-     ? (t2).tv_usec + (_1SEC_IN_USEC - _REPEAT_DELAY) > (t1).tv_usec    \
-     : (t2).tv_sec > (t1).tv_sec)
+#define _ELAPSED_USEC(t1, t2)                      \
+  (((t2)->tv_sec - (t1)->tv_sec) * _USEC_PER_SEC + \
+   (t2)->tv_usec - (t1)->tv_usec)
 
 static gint _open_device_file(const gchar *device_filepath);
 static gint _find_keyboard();
@@ -46,6 +42,10 @@ static gboolean _get_ev_bits(gint fd, guint8 ev_bits[]);
 static gboolean _get_key_bits(gint fd, guint8 key_bits[]);
 static gboolean _handle_input(gpointer user_data);
 static gboolean _handle_event(XSetKeys *xsk, struct input_event *event);
+static gboolean _is_after_repeat_delay(Display *display,
+                                       XkbDescPtr xkb,
+                                       struct timeval *t1,
+                                       const struct timeval *t2);
 
 KeyboardDevice *kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
 {
@@ -71,6 +71,12 @@ KeyboardDevice *kd_initialize(XSetKeys *xsk, const gchar *device_filepath)
     device_finalize(&device->device);
     return NULL;
   }
+  device->xkb = XkbAllocKeyboard();
+  if (!device->xkb) {
+    g_critical("Failed to allocate keyboard description");
+    device_finalize(&device->device);
+    return NULL;
+  }
   device->pressing_keys = key_code_array_new(6);
   return device;
 }
@@ -84,6 +90,9 @@ void kd_finalize(XSetKeys *xsk)
   }
   if (device->pressing_keys) {
     key_code_array_free(device->pressing_keys);
+  }
+  if (device->xkb) {
+    XkbFreeKeyboard(device->xkb, 0, True);
   }
   device_close(&device->device);
   device_finalize(&device->device);
@@ -285,15 +294,10 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
       }
       break;
     default:
-      is_after_repeat_delay = _is_after_repeat_delay(device->press_start_time,
-                                                     event->time);
-      if (is_after_repeat_delay) {
-        device->press_start_time.tv_usec += _REPEAT_PERIOD;
-        if (device->press_start_time.tv_usec >= _1SEC_IN_USEC) {
-          device->press_start_time.tv_sec++;
-          device->press_start_time.tv_usec -= _1SEC_IN_USEC;
-        }
-      }
+      is_after_repeat_delay = _is_after_repeat_delay(xsk_get_display(xsk),
+                                                     device->xkb,
+                                                     &device->press_start_time,
+                                                     &event->time);
       switch (xsk_handle_key_repeat(xsk, event->code, is_after_repeat_delay)) {
       case XSK_CONSUMED:
         return TRUE;
@@ -306,4 +310,34 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
     break;
   }
   return ud_send_event(xsk, event);
+}
+
+static gboolean _is_after_repeat_delay(Display *display,
+                                       XkbDescPtr xkb,
+                                       struct timeval *t1,
+                                       const struct timeval *t2)
+{
+  XKeyboardState keyboard_state;
+
+  XGetKeyboardControl(display, &keyboard_state);
+  if (keyboard_state.global_auto_repeat != AutoRepeatModeOn) {
+    return FALSE;
+  }
+
+  if (XkbGetControls(display, XkbRepeatKeysMask, xkb) != Success) {
+    g_warning("XkbGetControls() failed");
+    return FALSE;
+  }
+
+  if (t2->tv_sec < t1->tv_sec ||
+      (t2->tv_sec == t1->tv_sec && t2->tv_usec < t1->tv_usec) ||
+      _ELAPSED_USEC(t1, t2) < xkb->ctrls->repeat_delay * _USEC_PER_MSEC) {
+    return FALSE;
+  }
+  t1->tv_usec += xkb->ctrls->repeat_interval * _USEC_PER_MSEC;
+  while (t1->tv_usec >= _USEC_PER_SEC) {
+    t1->tv_sec++;
+    t1->tv_usec -= _USEC_PER_SEC;
+  }
+  return TRUE;
 }
