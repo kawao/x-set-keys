@@ -317,15 +317,14 @@ static gboolean _is_after_repeat_delay(Display *display,
                                        struct timeval *t1,
                                        const struct timeval *t2)
 {
-  XKeyboardState keyboard_state;
-
-  XGetKeyboardControl(display, &keyboard_state);
-  if (keyboard_state.global_auto_repeat != AutoRepeatModeOn) {
+  if (XkbGetControls(display,
+                     XkbRepeatKeysMask|XkbControlsEnabledMask,
+                     xkb) != Success) {
+    g_warning("XkbGetControls() failed");
     return FALSE;
   }
 
-  if (XkbGetControls(display, XkbRepeatKeysMask, xkb) != Success) {
-    g_warning("XkbGetControls() failed");
+  if (!(xkb->ctrls->enabled_ctrls & XkbRepeatKeysMask)) {
     return FALSE;
   }
 
