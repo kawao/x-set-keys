@@ -28,9 +28,6 @@
 #define _reset_current_actions(xsk)                 \
   ((xsk)->current_actions = (xsk)->root_actions)
 
-static gboolean _start_internal(XSetKeys *xsk,
-                                const gchar *device_filepath,
-                                gchar *excluded_fcitx_input_methods[]);
 static const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code);
 static XskResult _key_pressed_on_selection_mode(XSetKeys *xsk,
                                                 KeyCode key_code);
@@ -64,35 +61,6 @@ gboolean xsk_initialize(XSetKeys *xsk, gchar *excluded_classes[])
 gboolean xsk_start(XSetKeys *xsk,
                    const gchar *device_filepath,
                    gchar *excluded_fcitx_input_methods[])
-{
-  gboolean result = FALSE;
-  XkbDescPtr xkb;
-
-  xkb = XkbAllocKeyboard();
-  if (xkb == NULL) {
-    g_critical("Failed to allocate keyboard description");
-    return FALSE;
-  }
-
-  if (XkbGetControls(xsk->display, XkbAllControlsMask, xkb) != Success) {
-    g_critical("Failed to get keyboard controls");
-  } else {
-    if (_start_internal(xsk, device_filepath, excluded_fcitx_input_methods)) {
-      if (!XkbSetControls(xsk->display, XkbAllControlsMask, xkb)) {
-        g_critical("Failed to set keyboard controls");
-      } else {
-        result = TRUE;
-      }
-    }
-  }
-
-  XkbFreeKeyboard(xkb, 0, True);
-  return result;
-}
-
-static gboolean _start_internal(XSetKeys *xsk,
-                                const gchar *device_filepath,
-                                gchar *excluded_fcitx_input_methods[])
 {
   if (excluded_fcitx_input_methods) {
     xsk->fcitx = fcitx_initialize(xsk, excluded_fcitx_input_methods);
