@@ -21,6 +21,7 @@
 #define _COMMON_H
 
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 #include <glib.h>
 
@@ -30,7 +31,8 @@ extern const
 gboolean is_debug;
 
 #define debug_print(format, ...) if (is_debug)                          \
-    g_debug("%s:%d (%s) " format, __FILE__, __LINE__, G_STRFUNC, ##__VA_ARGS__)
+    (g_debug("%s:%d (%s) " format,                                      \
+             __FILE__, __LINE__, G_STRFUNC, ##__VA_ARGS__), fflush(stdout))
 
 #define print_error(format, ...)                                        \
   (errno ? g_critical(format " : %s", ##__VA_ARGS__, strerror(errno))   \

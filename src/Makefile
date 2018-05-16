@@ -6,7 +6,8 @@ OBJS = main.o x-set-keys.o action.o config.o key-code-array.o \
   fcitx.o
 
 CC = gcc
-CFLAGS = -Wall -g -O2 `pkg-config --cflags gio-2.0`
+CDEFS ?=
+CFLAGS = -Wall -g -O2 `pkg-config --cflags gio-2.0` $(CDEFS)
 LDFLAGS = -lX11 `pkg-config --libs gio-2.0`
 
 .SUFFIXES: .c .o
