@@ -82,13 +82,7 @@ void ud_finalize(XSetKeys *xsk)
   UInputDevice *device = xsk_get_uinput_device(xsk);
 
   if (device->pressing_keys) {
-    KeyCode *pointer;
-
-    for (pointer = &key_code_array_get_at(device->pressing_keys, 0);
-         *pointer;
-         pointer++) {
-      ud_send_key_event(xsk, *pointer, FALSE, TRUE);
-    }
+    ud_send_key_events(xsk, device->pressing_keys, FALSE, TRUE);
     key_code_array_free(device->pressing_keys);
   }
   if (ioctl(device_get_fd(&device->device), UI_DEV_DESTROY) < 0) {
@@ -119,6 +113,21 @@ gboolean ud_send_key_event(XSetKeys *xsk,
     return FALSE;
   }
 
+  return TRUE;
+}
+
+gboolean ud_send_key_events(XSetKeys *xsk,
+                            const KeyCodeArray *key_cords,
+                            gboolean is_press,
+                            gboolean is_temporary)
+{
+  KeyCode *pointer;
+
+  for (pointer = &key_code_array_get_at(key_cords, 0); *pointer; pointer++) {
+    if (!ud_send_key_event(xsk, *pointer, is_press, is_temporary)) {
+      return FALSE;
+    }
+  }
   return TRUE;
 }
 

@@ -39,6 +39,7 @@ typedef struct _Arguments_ {
 static volatile gboolean _caught_sigint = FALSE;
 static volatile gboolean _caught_sigterm = FALSE;
 static volatile gboolean _caught_sighup = FALSE;
+static volatile gboolean _caught_sigusr1 = FALSE;
 static volatile gboolean _error_occurred = FALSE;
 static jmp_buf _xio_error_env;
 
@@ -67,6 +68,7 @@ gint main(gint argc, gchar *argv[])
   g_unix_signal_add(SIGINT, _handle_signal, (gpointer)&_caught_sigint);
   g_unix_signal_add(SIGTERM, _handle_signal, (gpointer)&_caught_sigterm);
   g_unix_signal_add(SIGHUP, _handle_signal, (gpointer)&_caught_sighup);
+  g_unix_signal_add(SIGUSR1, _handle_signal, (gpointer)&_caught_sigusr1);
 
   XSetErrorHandler(_handle_x_error);
   XSetIOErrorHandler(_handle_xio_error);
@@ -232,6 +234,15 @@ static gboolean _run(const _Arguments *arguments)
            !_caught_sighup &&
            !_error_occurred) {
       g_main_context_iteration(NULL, TRUE);
+      if (_caught_sigusr1 && !_error_occurred) {
+        g_message("Keyboard mapping changed");
+        xsk_mapping_changed(&xsk);
+        if (!_error_occurred &&
+            !config_load(&xsk, arguments->config_filepath)) {
+          _error_occurred = TRUE;
+        }
+        _caught_sigusr1 = FALSE;
+      }
     }
     is_restart = TRUE;
     if (_caught_sigint) {

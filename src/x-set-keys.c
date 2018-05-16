@@ -82,6 +82,9 @@ gboolean xsk_start(XSetKeys *xsk,
 
 void xsk_finalize(XSetKeys *xsk)
 {
+  if (xsk->window_system) {
+    window_system_pre_finalize(xsk);
+  }
   if (xsk->uinput_device) {
     ud_finalize(xsk);
   }
@@ -216,6 +219,16 @@ void xsk_reset_state(XSetKeys *xsk)
 {
   _reset_current_actions(xsk);
   xsk->is_selection_mode = FALSE;
+}
+
+void xsk_mapping_changed(XSetKeys *xsk)
+{
+  ki_initialize(xsk->display, &xsk->key_information);
+  if (xsk->root_actions) {
+    action_list_free(xsk->root_actions);
+  }
+  xsk->root_actions = action_list_new();
+  xsk_reset_state(xsk);
 }
 
 static const Action *_lookup_action(XSetKeys *xsk, KeyCode key_code)

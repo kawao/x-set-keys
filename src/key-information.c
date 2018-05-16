@@ -226,15 +226,26 @@ static void _initialize_modifier_info(Display *display,
   gint row;
   XModifierKeymap *modmap = XGetModifierMapping(display);
 
-  _set_modifier_info(key_info, KI_MODIFIER_SHIFT, modmap, 0);
-  _set_modifier_info(key_info, KI_MODIFIER_CONTROL, modmap, 2);
+  if (!modmap) {
+    print_error("XGetModifierMapping failed!");
+    return;
+  }
 
-  for (row = 3; row < 8; row++) {
-    KIModifier modifier = _get_modifier_for_modmap_row(display,
-                                                       key_info,
-                                                       modmap,
-                                                       row);
-    _set_modifier_info(key_info, modifier, modmap, row);
+  if (!modmap->max_keypermod) {
+    g_warning("Max number of keys per modifier is zero!");
+  } else {
+    memset(key_info, 0, sizeof *key_info);
+
+    _set_modifier_info(key_info, KI_MODIFIER_SHIFT, modmap, 0);
+    _set_modifier_info(key_info, KI_MODIFIER_CONTROL, modmap, 2);
+
+    for (row = 3; row < 8; row++) {
+      KIModifier modifier = _get_modifier_for_modmap_row(display,
+                                                         key_info,
+                                                         modmap,
+                                                         row);
+      _set_modifier_info(key_info, modifier, modmap, row);
+    }
   }
 
   XFreeModifiermap(modmap);

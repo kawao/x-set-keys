@@ -38,6 +38,10 @@ gboolean ud_send_key_event(XSetKeys *xsk,
                            KeyCode key_cord,
                            gboolean is_press,
                            gboolean is_temporary);
+gboolean ud_send_key_events(XSetKeys *xsk,
+                            const KeyCodeArray *key_cords,
+                            gboolean is_press,
+                            gboolean is_temporary);
 gboolean ud_send_event(XSetKeys *xsk, struct input_event *event);
 
 #define ud_get_pressing_keys(xsk)               \

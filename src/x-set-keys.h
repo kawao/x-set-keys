@@ -60,6 +60,7 @@ gboolean xsk_send_key_events(XSetKeys *xsk,
 void xsk_toggle_selection_mode(XSetKeys *xsk);
 gboolean xsk_is_excluded(XSetKeys *xsk);
 void xsk_reset_state(XSetKeys *xsk);
+void xsk_mapping_changed(XSetKeys *xsk);
 
 #define xsk_get_display(xsk) ((xsk)->display)
 #define xsk_get_key_information(xsk) (&(xsk)->key_information)
