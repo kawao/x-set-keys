@@ -95,33 +95,8 @@ void window_system_finalize(XSetKeys *xsk)
   WindowSystem *ws = xsk_get_window_system(xsk);
 
   if (_is_exist_keyboard_data(ws)) {
-    Display *display = xsk_get_display(xsk);
-    gboolean mapping_changed = FALSE;
-    do {
-      gint status = _poll_display(display, 5000);
-      if (status < 0) {
-        _free_keyboard_data(ws);
-        break;
-      }
-      if (status == 0) {
-        g_warning("Poll display Timeout!");
-        break;
-      }
-
-      while (XPending(display)) {
-        XEvent event;
-
-        XNextEvent(display, &event);
-        if (event.type == MappingNotify &&
-            event.xmapping.request == MappingKeyboard) {
-          mapping_changed = TRUE;
-        }
-      }
-    } while (!mapping_changed);
-
-    _set_keyboard_data(display, ws);
+    _set_keyboard_data(xsk_get_display(xsk), ws);
   }
-
   device_finalize(&ws->device);
 }
 
