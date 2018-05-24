@@ -264,6 +264,6 @@ static gboolean _run(const _Arguments *arguments)
     return FALSE;
   }
 
-  xsk_finalize(&xsk);
+  xsk_finalize(&xsk, is_restart);
   return is_restart;
 }

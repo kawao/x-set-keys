@@ -49,7 +49,7 @@ gboolean xsk_initialize(XSetKeys *xsk, gchar *excluded_classes[]);
 gboolean xsk_start(XSetKeys *xsk,
                    const gchar *device_filepath,
                    gchar *excluded_fcitx_input_methods[]);
-void xsk_finalize(XSetKeys *xsk);
+void xsk_finalize(XSetKeys *xsk, gboolean is_restart);
 
 XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code);
 XskResult xsk_handle_key_repeat(XSetKeys *xsk,

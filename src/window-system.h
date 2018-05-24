@@ -20,8 +20,6 @@
 #ifndef _WINDOW_SYSTEM_H
 #define _WINDOW_SYSTEM_H
 
-#include <X11/XKBlib.h>
-
 #include "x-set-keys.h"
 #include "device.h"
 
@@ -32,18 +30,12 @@ typedef struct WindowSystem_ {
   Atom xkb_rules_atom;
   Window focus_window;
   gboolean is_excluded;
-  int min_keycodes;
-  int num_keycodes;
-  int keysyms_per_keycode;
-  KeySym *keysyms;
-  XModifierKeymap *modmap;
-  XkbDescPtr xkb;
 } WindowSystem;
 
 WindowSystem *window_system_initialize(XSetKeys *xsk,
                                        gchar *excluded_classes[]);
 void window_system_pre_finalize(XSetKeys *xsk);
-void window_system_finalize(XSetKeys *xsk);
+void window_system_finalize(XSetKeys *xsk, gboolean is_restart);
 
 #define window_system_is_excluded(xsk) (xsk_get_window_system(xsk)->is_excluded)
 

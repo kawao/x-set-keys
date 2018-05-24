@@ -80,7 +80,7 @@ gboolean xsk_start(XSetKeys *xsk,
   return TRUE;
 }
 
-void xsk_finalize(XSetKeys *xsk)
+void xsk_finalize(XSetKeys *xsk, gboolean is_restart)
 {
   if (xsk->window_system) {
     window_system_pre_finalize(xsk);
@@ -98,7 +98,7 @@ void xsk_finalize(XSetKeys *xsk)
     action_list_free(xsk->root_actions);
   }
   if (xsk->window_system) {
-    window_system_finalize(xsk);
+    window_system_finalize(xsk, is_restart);
   }
   if (xsk->display) {
     XCloseDisplay(xsk->display);
