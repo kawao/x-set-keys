@@ -34,6 +34,7 @@ static struct _KeyboardData_ {
   KeySym *keysyms;
   XModifierKeymap *modmap;
   XkbDescPtr xkb;
+  gboolean is_failed;
 } _keyboard_data = { 0 };
 
 #define _is_valid_window(window) ((window) != None && (window) != PointerRoot)
@@ -297,7 +298,7 @@ static void _get_keyboard_data(Display *display)
 {
   gint max_keycodes;
 
-  if (_is_exist_keyboard_data()) {
+  if (_is_exist_keyboard_data() || _keyboard_data.is_failed) {
     return;
   }
 
@@ -354,6 +355,7 @@ static void _set_keyboard_data(Display *display)
         continue;
       }
       if (status != MappingSuccess) {
+        _keyboard_data.is_failed = TRUE;
         print_error("XSetModifierMapping returns=%d", status);
       }
       break;
@@ -367,6 +369,7 @@ static void _set_keyboard_data(Display *display)
 
   if (_keyboard_data.xkb) {
     if (!XkbSetControls(display, XkbAllControlsMask, _keyboard_data.xkb)) {
+      _keyboard_data.is_failed = TRUE;
       print_error("XkbSetControls failed!");
     }
     XkbFreeKeyboard(_keyboard_data.xkb, 0, True);
