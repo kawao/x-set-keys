@@ -211,16 +211,16 @@ This option can be specified multiple times.
 
 ```sh
 $ sudo -b /usr/local/bin/x-set-keys \
-     --exclude-focus-class=emacs --exclude-focus-class=Gnome-terminal \
-     /usr/local/etc/x-set-keys/emacslike.conf
+	 --exclude-focus-class=emacs --exclude-focus-class=Gnome-terminal \
+	 /usr/local/etc/x-set-keys/emacslike.conf
 ```
 
 The above example run x-set-keys with configuration file /usr/local/etc/x-set-keys/emacslike.conf, excluding emacs and gnome-terminal.
 
 ```sh
 $ sudo -b G_MESSAGES_PREFIXED=all /usr/local/bin/x-set-keys \
-     --device-file=/dev/input/by-id/usb-Topre_Corporation_Realforce-event-kbd \
-     --exclude-focus-class=emacs24 /usr/local/etc/x-set-keys/emacslike.conf
+	 --device-file=/dev/input/by-id/usb-Topre_Corporation_Realforce-event-kbd \
+	 --exclude-focus-class=emacs24 /usr/local/etc/x-set-keys/emacslike.conf
 ```
 
 The above example specify Realforce of Topre corporation as keyboard device.
@@ -228,11 +228,11 @@ Environment variable `G_MESSAGES_PREFIXED=all` means that output messages should
 
 ```sh
 $ sudo -b G_MESSAGES_PREFIXED=all \
-     DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS \
-     /usr/local/bin/x-set-keys \
-       --exclude-focus-class=Emacs \
-       --exclude-fcitx-im=mozc \
-       /usr/local/etc/x-set-keys/emacslike.conf
+	 DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS \
+	 /usr/local/bin/x-set-keys \
+	   --exclude-focus-class=Emacs \
+	   --exclude-fcitx-im=mozc \
+	   /usr/local/etc/x-set-keys/emacslike.conf
 ```
 
 In the above example key remapping is disabled while the input method mozc of fcitx is active.
@@ -244,6 +244,39 @@ To run x-set-keys without password, add following line to the bottom of the file
 
 ```
 yourname ALL=(ALL) SETENV:NOPASSWD: /usr/local/bin/x-set-keys
+```
+
+## How it works
+It Uses Glib library, kernel input, Xlib
+- glib.h
+- glib-unix.h
+- linux/input.h
+- X11/Xlib.h
+
+It uses keyboard device /dev/input/event? and /dev/uinput (or /dev/input/uinput).
+You require "uinput" kernel module.
+	Device Drivers -> Input Device Support -> Miscellaneous drivers -> User level driver support
+
+## source files
+
+action.c
+common.h - macros: debug_print, print_error, array_num(number of ellements in the array)
+config.c
+device.c - low level keyboard device handling for uinput and keyboard-device
+fcitx.c - watch for org.fcitx.Fcitx at DBus in X11, Fcitx is a Chinese/Japanese input program
+key-code-array.c
+key-information.c
+keyboard-device.c
+main.c - 1 parse_arguments 2 handle signals 3 xsk_initialize, config.config_load, xsk_start
+uinput-device.c - bind keyboard event handlers
+window-system.c
+x-set-keys.c
+
+## debuging
+
+You need SETENV in /etc/sudoers
+``` sh
+G_MESSAGES_DEBUG=all sudo -E x-set-keys
 ```
 
 ## Related Works
