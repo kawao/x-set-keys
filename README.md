@@ -259,18 +259,18 @@ You require "uinput" kernel module.
 
 ## source files
 
-action.c
-common.h - macros: debug_print, print_error, array_num(number of ellements in the array)
-config.c
-device.c - low level keyboard device handling for uinput and keyboard-device
-fcitx.c - watch for org.fcitx.Fcitx at DBus in X11, Fcitx is a Chinese/Japanese input program
-key-code-array.c
-key-information.c
-keyboard-device.c
-main.c - 1 parse_arguments 2 handle signals 3 xsk_initialize, config.config_load, xsk_start
-uinput-device.c - bind keyboard event handlers
-window-system.c
-x-set-keys.c
+- action.c
+- common.h - macros: debug_print, print_error, array_num(number of ellements in the array)
+- config.c
+- device.c - low level keyboard device handling for uinput and keyboard-device
+- fcitx.c - watch for org.fcitx.Fcitx at DBus in X11, Fcitx is a Chinese/Japanese input program
+- key-code-array.c
+- key-information.c
+- keyboard-device.c
+- main.c - 1 parse_arguments 2 handle signals 3 xsk_initialize, config.config_load, xsk_start
+- uinput-device.c - bind keyboard event handlers
+- window-system.c
+- x-set-keys.c
 
 ## debuging
 
