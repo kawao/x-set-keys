@@ -16,12 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ***************************************************************************/
-
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
+// C Standard Library
+#include <errno.h> // error message
+#include <stdio.h> // IO
+#include <string.h> // strings operations
 #include <setjmp.h>
-#include <glib-unix.h>
+
+#include <glib-unix.h> // GLib include: g_main_context_iteration
 #include <X11/Xlib.h>
 
 #define MAIN
@@ -29,6 +30,7 @@
 #include "x-set-keys.h"
 #include "config.h"
 
+// parsed command line arguments
 typedef struct _Arguments_ {
   gchar *config_filepath;
   gchar *device_filepath;
@@ -60,19 +62,20 @@ gint main(gint argc, gchar *argv[])
 
   g_set_prgname(g_path_get_basename(argv[0]));
   _set_debug_flag();
-
+  // Creates a new option context.
   if (!_parse_arguments(argc, argv, &arguments)) {
     return EXIT_FAILURE;
   }
-
+  // handle signals SIGINT SIGTERM SIGHUP SIGUSR1
+  // set TRUE for (gpointer)&_caught_*
   g_unix_signal_add(SIGINT, _handle_signal, (gpointer)&_caught_sigint);
   g_unix_signal_add(SIGTERM, _handle_signal, (gpointer)&_caught_sigterm);
   g_unix_signal_add(SIGHUP, _handle_signal, (gpointer)&_caught_sighup);
   g_unix_signal_add(SIGUSR1, _handle_signal, (gpointer)&_caught_sigusr1);
-
+  // Xlib error handlers
   XSetErrorHandler(_handle_x_error);
   XSetIOErrorHandler(_handle_xio_error);
-
+  // 10 times restart _run if x error, else 1 restart
   while (_run(&arguments)) {
     if (_error_occurred) {
       if (++error_retry_count > 10) {
@@ -201,6 +204,7 @@ static gint _handle_xio_error(Display *display)
   return 0;
 }
 
+// second main function
 static gboolean _run(const _Arguments *arguments)
 {
   gboolean is_restart = FALSE;
@@ -210,16 +214,18 @@ static gboolean _run(const _Arguments *arguments)
     _error_occurred = TRUE;
     is_restart = FALSE;
   }
-
+  // xsk_initialize: fill xsk - display, window_system, keys information
   if (!_error_occurred && !xsk_initialize(&xsk, arguments->excluded_classes)) {
     _error_occurred = TRUE;
     if (xsk_get_display(&xsk)) {
       is_restart = TRUE;
     }
   }
+  // config_load - find keyboard device
   if (!_error_occurred && !config_load(&xsk, arguments->config_filepath)) {
     _error_occurred = TRUE;
   }
+  // bind
   if (!_error_occurred && !xsk_start(&xsk,
                                      arguments->device_filepath,
                                      arguments->excluded_fcitx_input_methods)) {
@@ -233,7 +239,7 @@ static gboolean _run(const _Arguments *arguments)
            !_caught_sigterm &&
            !_caught_sighup &&
            !_error_occurred) {
-      g_main_context_iteration(NULL, TRUE);
+      g_main_context_iteration(NULL, TRUE); // glib/gmain.h
       if (_caught_sigusr1 && !_error_occurred) {
         g_message("Keyboard mapping changed");
         xsk_mapping_changed(&xsk);
