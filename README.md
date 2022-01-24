@@ -281,10 +281,11 @@ G_MESSAGES_DEBUG=all sudo -E x-set-keys
 
 ## Related Works
 
-- [autokey](https://code.google.com/archive/p/autokey/)
-- [x11keymacs](http://yashiromann.sakura.ne.jp/x11keymacs/index-en.html)
-- [chromemacs](https://github.com/zenozeng/chromemacs)
-
+- [autokey](https://code.google.com/archive/p/autokey/) GPL v3 License
+- [x11keymacs](http://yashiromann.sakura.ne.jp/x11keymacs/index-en.html) MIT License
+- [chromemacs](https://github.com/zenozeng/chromemacs) GPL-2.0 License
+- [xremap](https://github.com/k0kubun/xremap) MIT License
+- [wayremap](https://github.com/acro5piano/wayremap) MIT License
 ## Licence
 
 [GPLv3](http://www.gnu.org/licenses/gpl.html)
