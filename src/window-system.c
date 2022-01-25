@@ -277,9 +277,6 @@ static gboolean _get_is_excluded(Display *display,
     window = parent;
   }
 
-  g_message("Window name: %s", class_hints.res_name);
-  g_message("Window class: %s", class_hints.res_class);
-
   for (; *excluded_classes; excluded_classes++) {
     if (!g_strcmp0(*excluded_classes, class_hints.res_name)) {
       result = TRUE;
@@ -290,6 +287,8 @@ static gboolean _get_is_excluded(Display *display,
       break;
     }
   }
+
+  g_message("Focused window name, class, binded: %s, %s, %s", class_hints.res_name, class_hints.res_class, result ? "false" : "true");
 
   XFree(class_hints.res_name);
   XFree(class_hints.res_class);
