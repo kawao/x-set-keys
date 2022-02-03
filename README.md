@@ -279,6 +279,11 @@ You need SETENV in /etc/sudoers
 G_MESSAGES_DEBUG=all sudo -E x-set-keys
 ```
 
+## TODO
+
+- hydra like style
+- keybinding per application
+
 ## Related Works
 
 - [autokey](https://code.google.com/archive/p/autokey/) GPL v3 License
@@ -286,6 +291,7 @@ G_MESSAGES_DEBUG=all sudo -E x-set-keys
 - [chromemacs](https://github.com/zenozeng/chromemacs) GPL-2.0 License
 - [xremap](https://github.com/k0kubun/xremap) MIT License
 - [wayremap](https://github.com/acro5piano/wayremap) MIT License
+
 ## Licence
 
 [GPLv3](http://www.gnu.org/licenses/gpl.html)
