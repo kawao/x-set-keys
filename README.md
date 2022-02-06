@@ -281,7 +281,8 @@ G_MESSAGES_DEBUG=all sudo -E x-set-keys
 
 ## TODO
 
-- hydra like style
+- allow to define modes - like hydra
+- allow to define key-chords - any keys pressed simultaneously
 - keybinding per application
 
 ## Related Works
