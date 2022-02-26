@@ -279,6 +279,22 @@ You need SETENV in /etc/sudoers
 G_MESSAGES_DEBUG=all sudo -E x-set-keys
 ```
 
+## autostart in XFCE4
+```
+[Desktop Entry]
+Encoding=UTF-8
+Version=0.9.4
+Type=Application
+Name=x-set-keys
+Comment=x-set-keys
+Exec=xfce4-terminal -e "bash -c 'sudo /usr/local/bin/x-set-keys --exclude-focus-class=emacs --exclude-focus-class=xfce4-terminal ~/x-set-keys.conf ; exec bash'"
+OnlyShowIn=XFCE;
+RunHook=0
+StartupNotify=false
+Terminal=false
+Hidden=false
+```
+
 ## TODO
 
 - allow to define modes - like hydra
