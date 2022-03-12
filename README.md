@@ -287,7 +287,7 @@ Version=0.9.4
 Type=Application
 Name=x-set-keys
 Comment=x-set-keys
-Exec=xfce4-terminal -e "bash -c 'sudo /usr/local/bin/x-set-keys --exclude-focus-class=emacs --exclude-focus-class=xfce4-terminal ~/x-set-keys.conf ; exec bash'"
+Exec=xfce4-terminal --initial-title "x-set-keys" -e "bash -c 'sudo /usr/local/bin/x-set-keys --exclude-focus-class=emacs --exclude-focus-class=xfce4-terminal ~/x-set-keys.conf ; exec bash'"
 OnlyShowIn=XFCE;
 RunHook=0
 StartupNotify=false
