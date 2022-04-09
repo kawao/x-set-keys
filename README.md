@@ -280,6 +280,7 @@ G_MESSAGES_DEBUG=all sudo -E x-set-keys
 ```
 
 ## autostart in XFCE4
+~/.config/autostart/x-set-keys.desktop
 ```
 [Desktop Entry]
 Encoding=UTF-8
