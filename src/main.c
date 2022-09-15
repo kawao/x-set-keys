@@ -75,8 +75,9 @@ gint main(gint argc, gchar *argv[])
   // Xlib error handlers
   XSetErrorHandler(_handle_x_error);
   XSetIOErrorHandler(_handle_xio_error);
-  // 10 times restart _run if x error, else 1 restart
-  while (_run(&arguments)) {
+
+  // main subroutine goes furher to _run()
+  while (_run(&arguments)) { // 10 times restart _run if x error, else just restart
     if (_error_occurred) {
       if (++error_retry_count > 10) {
         g_critical("Maximum error retry count exceeded");
