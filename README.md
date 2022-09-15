@@ -86,7 +86,7 @@ Modifier keys are written as follow.:
 - **S-** : Shift
 - **s-** : super
 
-Key names are found in the header file [X11/keysymdef.h](https://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h) [X11/keysymdef.h](file:///usr/include/X11/keysymdef.h) (remove the `XK_` prefix).
+Key names are found in the header file [/usr/include/X11/keysym.h](https://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h) (remove the `XK_` prefix).
 
 ### Cursor navigation
 
@@ -271,6 +271,7 @@ You require "uinput" kernel module.
 - uinput-device.c - bind keyboard event handlers
 - window-system.c
 - x-set-keys.c
+  - xsk_initialize -
 
 ## debuging
 
