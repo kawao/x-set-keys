@@ -86,7 +86,10 @@ Modifier keys are written as follow.:
 - **S-** : Shift
 - **s-** : super
 
-Key names are found in the header file [/usr/include/X11/keysym.h](https://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h) (remove the `XK_` prefix).
+Key names are found in the header file
+[X11/keysym.h](https://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h)
+[/usr/include/X11/keysymdef.h](/usr/include/X11/keysymdef.h)
+(remove the `XK_` prefix).
 
 ### Cursor navigation
 
