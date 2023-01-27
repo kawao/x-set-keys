@@ -309,6 +309,7 @@ Hidden=false
 
 - [autokey](https://code.google.com/archive/p/autokey/) GPL v3 License
 - [x11keymacs](http://yashiromann.sakura.ne.jp/x11keymacs/index-en.html) MIT License
+- [keyd](https://github.com/rvaiya/keyd/) MIT license 
 - [chromemacs](https://github.com/zenozeng/chromemacs) GPL-2.0 License
 - [xremap](https://github.com/k0kubun/xremap) MIT License
 - [wayremap](https://github.com/acro5piano/wayremap) MIT License
