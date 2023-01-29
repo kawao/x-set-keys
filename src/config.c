@@ -35,7 +35,7 @@ gboolean config_load(XSetKeys *xsk, const gchar filepath[])
   gint line_number;
   KeyCombinationArray *inputs;
   KeyCodeArrayArray *outputs;
-
+  // ------- open file
   channel = g_io_channel_new_file(filepath, "r", &error);
   if (!channel) {
     g_critical("Failed to open configuration file(%s): %s",
@@ -44,7 +44,7 @@ gboolean config_load(XSetKeys *xsk, const gchar filepath[])
     g_error_free(error);
     return FALSE;
   }
-
+  // -------- parse lines
   inputs = key_combination_array_new(6);
   outputs = key_code_array_array_new(6);
 
@@ -78,7 +78,7 @@ gboolean config_load(XSetKeys *xsk, const gchar filepath[])
 
   key_combination_array_free(inputs);
   key_code_array_array_free(outputs);
-
+  // -------- close file
   if (g_io_channel_shutdown(channel, FALSE, &error) == G_IO_STATUS_ERROR) {
     g_critical("Failed to close configuration file(%s): %s",
                filepath,

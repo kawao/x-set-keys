@@ -260,6 +260,19 @@ It uses keyboard device /dev/input/event? and /dev/uinput (or /dev/input/uinput)
 You require "uinput" kernel module.
 	Device Drivers -> Input Device Support -> Miscellaneous drivers -> User level driver support
 
+## execution path
+- main.c
+- x-set-keys.c:xsk_initialize - bind to windows. xsk is a x-set-keys.h:XSetKeys_ main conf structure
+  - key-information.c:ki_initialize - get system information about keys
+- config.c:config_load - to xsk object
+- x-set-keys.c:xsk_start
+  - fcitx_initialize
+  - kd_initialize - set callback on kb device
+  - ud_initialize - set callback on uidevice device - pass event ot kb device
+  - xsk_reset_state
+- main.c:g_main_context_iteration - activate blocking event loop of default GMainContext
+- keyboard-device.c:_handle_event
+- x-set-keys.c:xsk_handle_key_press(key_code) - check if excluded,
 ## source files
 
 - action.c
@@ -274,7 +287,7 @@ You require "uinput" kernel module.
 - uinput-device.c - bind keyboard event handlers
 - window-system.c
 - x-set-keys.c
-  - xsk_initialize -
+  - xsk_initialize - executes ki_initialize
 
 ## debuging
 
@@ -310,9 +323,8 @@ Hidden=false
 
 - [autokey](https://code.google.com/archive/p/autokey/) GPL v3 License
 - [x11keymacs](http://yashiromann.sakura.ne.jp/x11keymacs/index-en.html) MIT License
-- [chromemacs](https://github.com/zenozeng/chromemacs) GPL-2.0 License
-- [xremap](https://github.com/k0kubun/xremap) MIT License
-- [wayremap](https://github.com/acro5piano/wayremap) MIT License
+- [xremap](https://github.com/k0kubun/xremap) MIT License - evdev, language: Rust
+- [wayremap](https://github.com/acro5piano/wayremap) MIT License - for Wayland, language: Python
 
 ## Licence
 

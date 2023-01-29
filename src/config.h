@@ -23,5 +23,10 @@
 #include "x-set-keys.h"
 
 gboolean config_load(XSetKeys *xsk, const gchar filepath[]);
+/* parameters:
+   - xsk - display, window_system, keys information
+   - fiepath - config_filepath
+   return:
+ */
 
 #endif /* _CONFIG_H */
