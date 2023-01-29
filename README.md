@@ -87,8 +87,7 @@ Modifier keys are written as follow.:
 - **s-** : super
 
 Key names are found in the header file
-[X11/keysym.h](https://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h)
-[/usr/include/X11/keysymdef.h](file:///usr/include/X11/keysymdef.h)
+[/usr/include/X11/keysymdef.h](https://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h)
 (remove the `XK_` prefix).
 
 ### Cursor navigation
@@ -325,6 +324,8 @@ Hidden=false
 - [x11keymacs](http://yashiromann.sakura.ne.jp/x11keymacs/index-en.html) MIT License
 - [xremap](https://github.com/k0kubun/xremap) MIT License - evdev, language: Rust
 - [wayremap](https://github.com/acro5piano/wayremap) MIT License - for Wayland, language: Python
+- [keyd](https://github.com/rvaiya/keyd/) MIT license
+- [chromemacs](https://github.com/zenozeng/chromemacs) GPL-2.0 License
 
 ## Licence
 
