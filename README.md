@@ -274,7 +274,7 @@ You require "uinput" kernel module.
 - x-set-keys.c:xsk_handle_key_press(key_code) - check if excluded,
 ## source files
 
-- action.c
+- action.c - action object is a key event or multi-stroke or selection.
 - common.h - macros: debug_print, print_error, array_num(number of ellements in the array)
 - config.c
 - device.c - low level keyboard device handling for uinput and keyboard-device
@@ -285,8 +285,7 @@ You require "uinput" kernel module.
 - main.c - 1 parse_arguments 2 handle signals 3 xsk_initialize, config.config_load, xsk_start
 - uinput-device.c - bind keyboard event handlers
 - window-system.c
-- x-set-keys.c
-  - xsk_initialize - executes ki_initialize
+- x-set-keys.c - main file for handling keyboard events.
 
 ## debuging
 
