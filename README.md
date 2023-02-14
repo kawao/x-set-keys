@@ -139,9 +139,9 @@ C-k :: S-End C-x
 
 **$select** is the special notation that means start/end selection.
 
-**$stop** means pause program.
+**$stop** means pause program, keys do not suppressed.
 
-**$start** means continue program.
+**$start** means continue program, keys do not suppressed.
 
 To copy(cut) text, type Constrl+space and then move text cursor ( type cursor navigation key ), and then type Alt+w(Control+w).
 
@@ -251,68 +251,6 @@ To run x-set-keys without password, add following line to the bottom of the file
 ```
 yourname ALL=(ALL) SETENV:NOPASSWD: /usr/local/bin/x-set-keys
 ```
-
-## How it works
-It Uses Glib library, kernel input, Xlib
-- glib.h
-- glib-unix.h
-- linux/input.h
-- X11/Xlib.h
-
-It uses keyboard device /dev/input/event and /dev/uinput (or /dev/input/uinput).
-You require "uinput" kernel module.
-	Device Drivers -> Input Device Support -> Miscellaneous drivers -> User level driver support
-
-## execution path
-- main.c
-- x-set-keys.c:xsk_initialize - bind to windows.
-  - key-information.c:ki_initialize - get system information about keys
-- config.c:config_load -> _parse_line - to xsk object
-- action.c:action_list_add_key/select_action -> _add_action
-- x-set-keys.c:xsk_start
-  - fcitx_initialize
-  - kd_initialize - set callback on kb device with xsk argument
-  - ud_initialize - set callback on uidevice device - pass event ot kb device
-  - xsk_reset_state
-- main.c:g_main_context_iteration - activate blocking event loop of default GMainContext
-- keyboard-device.c:_handle_event
-- x-set-keys.c:xsk_handle_key_press(key_code) - check if config exist for keys pressed
-  - _key_pressed_on_selection_mode or action->run(xsk, action)
-- action.c: _send_key_events or _toggle_selection_mode
-
-
-## XSetKeys
-- xks - main data structure. x-set-keys.h:XSetKeys_
-- actions - key pressed or multiple keys or selection, defined in action.h
-
-## error handling
-main.c: is_debug global variable is set if G_MESSAGES_DEBUG=all is defined in environment.
-
-common.h: #define debug_print()
-
-keyboard-device.c and uinput-device.c #ifdef TRACE output current keys pressed.
-
-## source files
-
-- action.c - action object is a key event or multi-stroke or selection.
-- common.h - macros: debug_print, print_error, array_num(number of ellements in the array)
-- config.c
-- device.c - low level keyboard device handling for uinput and keyboard-device
-- fcitx.c - watch for org.fcitx.Fcitx at DBus in X11, Fcitx is a Chinese/Japanese input program
-- key-code-array.c
-- key-information.c
-- keyboard-device.c
-- main.c - 1 parse_arguments 2 handle signals 3 xsk_initialize, config.config_load, xsk_start
-- uinput-device.c - bind keyboard event handlers
-- window-system.c
-- x-set-keys.c - main file for handling keyboard events.
-
-## selection mode
-- Defined as a type in action.h
-- "$select" word action in configuration file.
-- x-set-keys.c:xsk_handle_key_press(key_code)
-- action->run(xsk, action) -> _toggle_selection_mod or _key_pressed_on_selection_mode if xsk->is_selection_mode
-- action.c:_toggle_selection_mode - toggle xsk->is_selection_mode
 
 ## debuging
 
