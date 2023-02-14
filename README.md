@@ -129,19 +129,13 @@ The above meanings are as follows.
 ### Cut/Copy and Paste
 
 ```
-C-space :: $select
 A-w :: C-c
 C-w :: C-x
 C-y :: C-v
 A-d :: S-C-Right C-x
 C-k :: S-End C-x
+C-space :: $select
 ```
-
-**$select** is the special notation that means start/end selection.
-
-**$stop** means pause program, keys do not suppressed.
-
-**$start** means continue program, keys do not suppressed.
 
 To copy(cut) text, type Constrl+space and then move text cursor ( type cursor navigation key ), and then type Alt+w(Control+w).
 
@@ -150,6 +144,13 @@ Other meanings are as follows.
 - Control+y maps to Control+v (Paste)
 - Alt+d maps to Shift+Control+Right and then Constol+x (Kill word)
 - Control+k maps to Shift+End and then Constol+x (Kill line)
+
+*special words:*
+
+**$select** is the special notation that means start/end selection.
+
+**$stop** and **$start** means pause and continue program (keys do not suppressed).
+
 
 ### Undo, Find and File(Window) commands
 
