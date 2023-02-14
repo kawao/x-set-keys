@@ -268,7 +268,7 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
 {
   KeyboardDevice *device = xsk_get_keyboard_device(xsk);
   gboolean is_after_repeat_delay;
-
+  // 1 level
   switch (event->type) {
   case EV_MSC:
     return TRUE;
@@ -277,6 +277,7 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
     if (!ki_is_valid_key_code(event->code)) {
       break;
     }
+    // 2 level
     switch (event->value) {
     case 0:
       key_code_array_remove(device->pressing_keys, event->code);
@@ -298,6 +299,7 @@ static gboolean _handle_event(XSetKeys *xsk, struct input_event *event)
                                                      device->xkb,
                                                      &device->press_start_time,
                                                      &event->time);
+      // 3 level
       switch (xsk_handle_key_repeat(xsk, event->code, is_after_repeat_delay)) {
       case XSK_CONSUMED:
         return TRUE;

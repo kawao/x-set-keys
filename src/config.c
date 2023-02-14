@@ -67,6 +67,7 @@ gboolean config_load(XSetKeys *xsk, const gchar filepath[])
     if (status == G_IO_STATUS_EOF) {
       break;
     }
+    // parse line!
     if (!_parse_line(xsk, inputs, outputs, line)) {
       g_critical("Configuration file(%s) error at line %d",
                  filepath,
@@ -94,13 +95,17 @@ gboolean config_load(XSetKeys *xsk, const gchar filepath[])
   return result;
 }
 
+/**
+ * @inputs: empty array, left side of config line
+ * @outputs: empty array, right side of config line
+ */
 static gboolean _parse_line(XSetKeys *xsk,
                             KeyCombinationArray *inputs,
                             KeyCodeArrayArray *outputs,
                             gchar *line)
 {
   gchar *word;
-
+  // -- comment or not
   word = _get_next_word(&line);
   if (!word || *word == '#') {
     return TRUE;
@@ -108,9 +113,11 @@ static gboolean _parse_line(XSetKeys *xsk,
 
   debug_print("Parsing: %s %s", word, line);
 
+  // -- fill inputs, outputs with zeroes
   key_combination_array_clear(inputs);
   key_code_array_array_clear(outputs);
 
+  // -- first parte before "::"
   do {
     KeyCombination kc;
 
@@ -120,6 +127,7 @@ static gboolean _parse_line(XSetKeys *xsk,
     if (key_combination_is_null(kc)) {
       return FALSE;
     }
+    // common preparation
     key_combination_array_add(inputs, kc);
 
     word = _get_next_word(&line);
@@ -131,12 +139,18 @@ static gboolean _parse_line(XSetKeys *xsk,
   if (!key_combination_array_get_length(inputs)) {
     return FALSE;
   }
-
+  // -- second part after "::"
   while ((word = _get_next_word(&line))) {
     KeyCodeArray *key_array;
-
     if (!strcmp(word, "$select")) {
       return action_list_add_select_action(xsk_get_root_actions(xsk), inputs);
+    }
+    gboolean is_start = !strcmp(word, "$start");
+    if (is_start) {
+      return action_list_add_startstop_action(xsk_get_root_actions(xsk), inputs, is_start);
+    }
+    if (!strcmp(word, "$stop")) {
+      return action_list_add_startstop_action(xsk_get_root_actions(xsk), inputs, is_start);
     }
     key_array = ki_string_to_key_code_array(xsk_get_display(xsk),
                                             xsk_get_key_information(xsk),
@@ -144,6 +158,7 @@ static gboolean _parse_line(XSetKeys *xsk,
     if (!key_array) {
       return FALSE;
     }
+    // common preparation
     key_code_array_array_add(outputs, key_array);
   }
 
