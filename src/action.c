@@ -25,7 +25,7 @@
 #define _list_free(list) g_tree_destroy(list)
 #define _list_insert(list, key_combination, action)                     \
   g_tree_insert((list),                                                 \
-                g_memdup(&(key_combination), sizeof (KeyCombination)),   \
+                g_memdup2(&(key_combination), sizeof (KeyCombination)),   \
                 (action))
 #define _list_get_length(action_list) g_tree_nnodes(action_list)
 #define _list_lookup(list, key_combination) \
