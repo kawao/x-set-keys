@@ -60,6 +60,9 @@ gboolean action_list_add_key_action(ActionList *actions_list,
                                     KeyCodeArrayArray *output_keys);
 gboolean action_list_add_select_action(ActionList *actions_list,
                                        const KeyCombinationArray *input_keys);
+gboolean action_list_add_startstop_action(ActionList *actions_list,
+                                          const KeyCombinationArray *input_keys,
+                                          gboolean is_start);
 gint action_list_get_length(const ActionList *action_list);
 const Action *action_list_lookup(const ActionList *action_list,
                                  KeyCombination key_combination);
