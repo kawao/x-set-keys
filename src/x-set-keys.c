@@ -110,21 +110,19 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
   const Action *action;
 
   action = _lookup_action(xsk, key_code); // get action for keys pressed from xsk->current_actions
-  if (action) { // if there is exist key in key combination
-    if ((xsk->is_stopped_mode && (action->type != ACTION_TYPE_START &&  \
-                                 action->type != ACTION_TYPE_MULTI_STROKE)) || \
-        xsk_is_excluded(xsk) ) {
-          return XSK_UNCONSUMED;
-    } else if (action->type == ACTION_TYPE_START || action->type == ACTION_TYPE_STOP) {
+  if (action) {
+    if (action->type == ACTION_TYPE_START || action->type == ACTION_TYPE_STOP) {
       action->run(xsk, action);
+      return XSK_UNCONSUMED;
+    } else if (xsk->is_stopped_mode && (action->type != ACTION_TYPE_START))
+    {
+      return XSK_UNCONSUMED;
+    } else if (xsk_is_excluded(xsk)) {
       return XSK_UNCONSUMED;
     } else {
       _reset_current_actions(xsk);
       return action->run(xsk, action) ? XSK_CONSUMED : XSK_FAILED;
     }
-  }
-  if (xsk_is_excluded(xsk)) {
-    return XSK_UNCONSUMED;
   }
   if (!ki_is_modifier(&xsk->key_information, key_code)) {
     if (xsk->current_actions != xsk->root_actions) {
