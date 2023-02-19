@@ -114,7 +114,7 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
     if (action->type == ACTION_TYPE_START || action->type == ACTION_TYPE_STOP) {
       action->run(xsk, action);
       return XSK_UNCONSUMED;
-    } else if (xsk->is_stopped_mode && (action->type != ACTION_TYPE_START))
+    } else if (xsk->is_stopped_mode)
     {
       return XSK_UNCONSUMED;
     } else if (xsk_is_excluded(xsk)) {
