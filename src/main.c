@@ -40,8 +40,8 @@ You require "uinput" kernel module.
 - action.c:action_list_add_key/select_action -> _add_action
 - x-set-keys.c:xsk_start
   - fcitx_initialize
-  - kd_initialize - set callback on kb device with xsk argument
-  - ud_initialize - set callback on uidevice device - pass event ot kb device
+  - keyboard-device.c:kd_initialize - set callback on kb device with xsk argument
+  - uinput-device.c:ud_initialize - set callback on uidevice device - pass event ot kb device
   - xsk_reset_state
 - main.c:g_main_context_iteration - activate blocking event loop of default GMainContext
 - keyboard-device.c:_handle_event
