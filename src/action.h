@@ -30,9 +30,19 @@ typedef GTree ActionList;
 typedef enum ActionType_ {
   ACTION_TYPE_KEY_EVENTS,
   ACTION_TYPE_MULTI_STROKE,
-  ACTION_TYPE_SELECTION
+  ACTION_TYPE_SELECTION,
+  ACTION_TYPE_START,
+  ACTION_TYPE_STOP
 } ActionType;
 
+/**
+ * run - callback
+ * free_data - callback that free action->data.key_arrays for normal keys.
+ *   Used only in action_list_add_key_action and action_list_add_select_action.
+ * data
+ *   key_arrays - output_keys for final or single key action
+ *   action_list - chain of Actions objects with callback
+ */
 typedef struct Action_ {
   ActionType type;
   gboolean (*run)(struct XSetKeys_ *xsk, const struct Action_ *action);
@@ -50,6 +60,9 @@ gboolean action_list_add_key_action(ActionList *actions_list,
                                     KeyCodeArrayArray *output_keys);
 gboolean action_list_add_select_action(ActionList *actions_list,
                                        const KeyCombinationArray *input_keys);
+gboolean action_list_add_startstop_action(ActionList *actions_list,
+                                          const KeyCombinationArray *input_keys,
+                                          gboolean is_start);
 gint action_list_get_length(const ActionList *action_list);
 const Action *action_list_lookup(const ActionList *action_list,
                                  KeyCombination key_combination);

@@ -16,12 +16,72 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ***************************************************************************/
+/*
+## Terms
+- xks - main data structure. x-set-keys.h:XSetKeys_
+- actions - key pressed or multiple keys or selection, defined in action.h
 
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
+## How it works
+It Uses Glib library, kernel input, Xlib
+- glib.h
+- glib-unix.h
+- linux/input.h
+- X11/Xlib.h
+
+It uses keyboard device /dev/input/event and /dev/uinput (or /dev/input/uinput).
+You require "uinput" kernel module.
+	Device Drivers -> Input Device Support -> Miscellaneous drivers -> User level driver support
+
+## execution path
+- main.c
+- x-set-keys.c:xsk_initialize - bind to windows.
+  - key-information.c:ki_initialize - get system information about keys
+- config.c:config_load -> _parse_line - to xsk object
+- action.c:action_list_add_key/select_action -> _add_action
+- x-set-keys.c:xsk_start
+  - fcitx_initialize
+  - keyboard-device.c:kd_initialize - set callback on kb device with xsk argument
+  - uinput-device.c:ud_initialize - set callback on uidevice device - pass event ot kb device
+  - xsk_reset_state
+- main.c:g_main_context_iteration - activate blocking event loop of default GMainContext
+- keyboard-device.c:_handle_event
+- x-set-keys.c:xsk_handle_key_press(key_code) - check if config exist for keys pressed
+  - _key_pressed_on_selection_mode or action->run(xsk, action)
+- action.c: _send_key_events or _toggle_selection_mode
+
+## error handling
+- main.c: is_debug global variable is set if G_MESSAGES_DEBUG=all is defined in environment.
+- common.h: #define debug_print()
+- keyboard-device.c and uinput-device.c #ifdef TRACE output current keys pressed.
+
+## source files
+- action.c - action object is a key event or multi-stroke or selection.
+- common.h - macros: debug_print, print_error, array_num(number of ellements in the array)
+- config.c
+- device.c - low level keyboard device handling for uinput and keyboard-device
+- fcitx.c - watch for org.fcitx.Fcitx at DBus in X11, Fcitx is a Chinese/Japanese input program
+- key-code-array.c
+- key-information.c
+- keyboard-device.c
+- main.c - 1 parse_arguments 2 handle signals 3 xsk_initialize, config.config_load, xsk_start
+- uinput-device.c - bind keyboard event handlers
+- window-system.c
+- x-set-keys.c - main file for handling keyboard events.
+
+## selection mode
+- Defined as a type in action.h
+- "$select" word action in configuration file.
+- x-set-keys.c:xsk_handle_key_press(key_code)
+- action->run(xsk, action) -> _toggle_selection_mod or _key_pressed_on_selection_mode if xsk->is_selection_mode
+- action.c:_toggle_selection_mode - toggle xsk->is_selection_mode
+*/
+// C Standard Library
+#include <errno.h> // error message
+#include <stdio.h> // IO
+#include <string.h> // strings operations
 #include <setjmp.h>
-#include <glib-unix.h>
+
+#include <glib-unix.h> // GLib include: g_main_context_iteration
 #include <X11/Xlib.h>
 
 #define MAIN
@@ -29,6 +89,7 @@
 #include "x-set-keys.h"
 #include "config.h"
 
+// parsed command line arguments
 typedef struct _Arguments_ {
   gchar *config_filepath;
   gchar *device_filepath;
@@ -60,20 +121,22 @@ gint main(gint argc, gchar *argv[])
 
   g_set_prgname(g_path_get_basename(argv[0]));
   _set_debug_flag();
-
+  // Creates a new option context.
   if (!_parse_arguments(argc, argv, &arguments)) {
     return EXIT_FAILURE;
   }
-
+  // handle signals SIGINT SIGTERM SIGHUP SIGUSR1
+  // set TRUE for (gpointer)&_caught_*
   g_unix_signal_add(SIGINT, _handle_signal, (gpointer)&_caught_sigint);
   g_unix_signal_add(SIGTERM, _handle_signal, (gpointer)&_caught_sigterm);
   g_unix_signal_add(SIGHUP, _handle_signal, (gpointer)&_caught_sighup);
   g_unix_signal_add(SIGUSR1, _handle_signal, (gpointer)&_caught_sigusr1);
-
+  // Xlib error handlers
   XSetErrorHandler(_handle_x_error);
   XSetIOErrorHandler(_handle_xio_error);
 
-  while (_run(&arguments)) {
+  // main subroutine goes furher to _run()
+  while (_run(&arguments)) { // 10 times restart _run if x error, else just restart
     if (_error_occurred) {
       if (++error_retry_count > 10) {
         g_critical("Maximum error retry count exceeded");
@@ -201,6 +264,7 @@ static gint _handle_xio_error(Display *display)
   return 0;
 }
 
+// second main function
 static gboolean _run(const _Arguments *arguments)
 {
   gboolean is_restart = FALSE;
@@ -210,16 +274,18 @@ static gboolean _run(const _Arguments *arguments)
     _error_occurred = TRUE;
     is_restart = FALSE;
   }
-
+  // xsk_initialize: fill xsk - display, window_system, keys information
   if (!_error_occurred && !xsk_initialize(&xsk, arguments->excluded_classes)) {
     _error_occurred = TRUE;
     if (xsk_get_display(&xsk)) {
       is_restart = TRUE;
     }
   }
+  // config_load - find keyboard device
   if (!_error_occurred && !config_load(&xsk, arguments->config_filepath)) {
     _error_occurred = TRUE;
   }
+  // bind
   if (!_error_occurred && !xsk_start(&xsk,
                                      arguments->device_filepath,
                                      arguments->excluded_fcitx_input_methods)) {
@@ -233,7 +299,7 @@ static gboolean _run(const _Arguments *arguments)
            !_caught_sigterm &&
            !_caught_sighup &&
            !_error_occurred) {
-      g_main_context_iteration(NULL, TRUE);
+      g_main_context_iteration(NULL, TRUE); // glib/gmain.h
       if (_caught_sigusr1 && !_error_occurred) {
         g_message("Keyboard mapping changed");
         xsk_mapping_changed(&xsk);

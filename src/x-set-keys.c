@@ -109,13 +109,20 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
 {
   const Action *action;
 
-  if (xsk_is_excluded(xsk)) {
-    return XSK_UNCONSUMED;
-  }
-  action = _lookup_action(xsk, key_code);
+  action = _lookup_action(xsk, key_code); // get action for keys pressed from xsk->current_actions
   if (action) {
-    _reset_current_actions(xsk);
-    return action->run(xsk, action) ? XSK_CONSUMED : XSK_FAILED;
+    if (action->type == ACTION_TYPE_START || action->type == ACTION_TYPE_STOP) {
+      action->run(xsk, action);
+      return XSK_UNCONSUMED;
+    } else if (xsk->is_stopped_mode)
+    {
+      return XSK_UNCONSUMED;
+    } else if (xsk_is_excluded(xsk)) {
+      return XSK_UNCONSUMED;
+    } else {
+      _reset_current_actions(xsk);
+      return action->run(xsk, action) ? XSK_CONSUMED : XSK_FAILED;
+    }
   }
   if (!ki_is_modifier(&xsk->key_information, key_code)) {
     if (xsk->current_actions != xsk->root_actions) {
@@ -208,6 +215,12 @@ void xsk_toggle_selection_mode(XSetKeys *xsk)
 {
   debug_print("%s selection mode", xsk->is_selection_mode ? "Exit" : "Enter" );
   xsk->is_selection_mode = !xsk->is_selection_mode;
+}
+
+void xsk_toggle_stopped_mode(XSetKeys *xsk, gboolean is_start)
+{
+  debug_print("%s stopped mode", xsk->is_stopped_mode ? "Exit" : "Enter" );
+  xsk->is_stopped_mode = !is_start;
 }
 
 gboolean xsk_is_excluded(XSetKeys *xsk)

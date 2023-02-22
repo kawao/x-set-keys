@@ -26,7 +26,15 @@
 #include "key-information.h"
 #include "key-code-array.h"
 #include "action.h"
-
+/*
+ * display - dafault display (XOpenDisplay(NULL))
+ * key_information - ModifierMapping and "cursor" something??? with KEY_HOME, KEY_UP, KEY_PAGEUP, KEY_LEFT, KEY_RIGHT, KEY_END
+ * root_actions - right side of config line
+ * current_actions - ?
+ * keyboard_device -
+ * uinput_device -
+ * is_selection_mode - text selection mode
+ */
 typedef struct XSetKeys_ {
   Display *display;
   KeyInformation key_information;
@@ -37,6 +45,7 @@ typedef struct XSetKeys_ {
   struct KeyboardDevice_ *keyboard_device;
   struct UInputDevice_ *uinput_device;
   gboolean is_selection_mode;
+  gboolean is_stopped_mode;
 } XSetKeys;
 
 typedef enum XskResult_ {
@@ -58,6 +67,7 @@ XskResult xsk_handle_key_repeat(XSetKeys *xsk,
 gboolean xsk_send_key_events(XSetKeys *xsk,
                              const KeyCodeArrayArray *key_arrays);
 void xsk_toggle_selection_mode(XSetKeys *xsk);
+void xsk_toggle_stopped_mode(XSetKeys *xsk, gboolean is_start);
 gboolean xsk_is_excluded(XSetKeys *xsk);
 void xsk_reset_state(XSetKeys *xsk);
 void xsk_mapping_changed(XSetKeys *xsk);

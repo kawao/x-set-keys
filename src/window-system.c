@@ -288,6 +288,8 @@ static gboolean _get_is_excluded(Display *display,
     }
   }
 
+  g_message("Focused window name, class, binded: %s, %s, %s", class_hints.res_name, class_hints.res_class, result ? "false" : "true");
+
   XFree(class_hints.res_name);
   XFree(class_hints.res_class);
 
