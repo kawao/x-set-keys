@@ -113,6 +113,10 @@ XskResult xsk_handle_key_press(XSetKeys *xsk, KeyCode key_code)
   if (action) {
     if (action->type == ACTION_TYPE_START || action->type == ACTION_TYPE_STOP) {
       action->run(xsk, action);
+      _reset_current_actions(xsk);
+      return XSK_UNCONSUMED;
+    } else if (action->type == ACTION_TYPE_MULTI_STROKE){
+      action->run(xsk, action) ? XSK_CONSUMED : XSK_FAILED ;
       return XSK_UNCONSUMED;
     } else if (xsk->is_stopped_mode)
     {
