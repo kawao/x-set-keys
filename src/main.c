@@ -40,14 +40,16 @@ You require "uinput" kernel module.
 - action.c:action_list_add_key/select_action -> _add_action
 - x-set-keys.c:xsk_start
   - fcitx_initialize
-  - keyboard-device.c:kd_initialize - set callback on kb device with xsk argument
-  - uinput-device.c:ud_initialize - set callback on uidevice device - pass event ot kb device
+  - kd_initialize - set callback on kb device with xsk argument
+  - ud_initialize - set callback on uidevice device - pass event ot kb device
   - xsk_reset_state
 - main.c:g_main_context_iteration - activate blocking event loop of default GMainContext
 - keyboard-device.c:_handle_event
 - x-set-keys.c:xsk_handle_key_press(key_code) - check if config exist for keys pressed
   - _key_pressed_on_selection_mode or action->run(xsk, action)
 - action.c: _send_key_events or _toggle_selection_mode
+- x-set-keys.c: xsk_send_key_events
+- uinput-device.c: ud_send_key_event
 
 ## error handling
 - main.c: is_debug global variable is set if G_MESSAGES_DEBUG=all is defined in environment.
